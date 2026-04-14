@@ -9,6 +9,32 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBksQBv2jSPOqn10v8mdm1Guxz8iMwGu74",
+            authDomain: "su-computer-studio.firebaseapp.com",
+            projectId: "su-computer-studio",
+            storageBucket: "su-computer-studio.firebasestorage.app",
+            messagingSenderId: "874274600895",
+            appId: "1:874274600895:web:7416b576c65fc341f9530a"
+        };
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            // 將 Firebase 方法掛載至全域變數，供下方一般腳本使用
+            window.firebaseDB = db;
+            window.firebaseDoc = doc;
+            window.firebaseSetDoc = setDoc;
+            window.firebaseGetDoc = getDoc;
+        } catch (error) {
+            console.error("Firebase 初始化失敗:", error);
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
         
@@ -58,22 +84,22 @@
 
         .quote-row { transition: all 0.3s ease; }
         .quote-row:nth-child(odd) { 
-            background: linear-gradient(90deg, rgba(6, 14, 25, 0.95) 0%, rgba(0, 243, 255, 0.02) 100%);
+            background: linear-gradient(90deg, rgba(6, 14, 25, 0.95) 0%, rgba(0, 243, 255, 0.02) 100%); 
             border-left: 3px solid rgba(0, 243, 255, 0.15); 
         }
         .quote-row:nth-child(even) { 
-            background: linear-gradient(90deg, rgba(13, 22, 35, 0.95) 0%, rgba(16, 185, 129, 0.02) 100%);
+            background: linear-gradient(90deg, rgba(13, 22, 35, 0.95) 0%, rgba(16, 185, 129, 0.02) 100%); 
             border-left: 3px solid rgba(16, 185, 129, 0.15); 
         }
         .quote-row:hover { background: rgba(0, 243, 255, 0.05); }
 
         .admin-row-odd { 
-            background: rgba(20, 90, 140, 0.6);
+            background: rgba(20, 90, 140, 0.6); 
             border-left: 4px solid var(--neon-cyan); 
             box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
         }
         .admin-row-even { 
-            background: rgba(20, 15, 35, 0.95);
+            background: rgba(20, 15, 35, 0.95); 
             border-left: 4px solid #b148ff; 
             box-shadow: inset 0 0 10px rgba(177, 72, 255, 0.05);
         }
@@ -100,7 +126,7 @@
             border: 1px solid rgba(0, 243, 255, 0.3) !important;
             color: #fff !important;
             outline: none !important;
-            font-size: 16px !important; /* 確保iOS不會自動放大 */
+            font-size: 16px !important; /* 確保iOS不自動放大 */
         }
         input:focus, select:focus { border-color: var(--neon-cyan) !important; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
 
@@ -122,11 +148,11 @@
         <div class="space-y-6">
             <div>
                 <label class="admin-label">管理者帳號</label>
-                <input type="text" id="loginId" class="w-full p-4 rounded-xl tech-font" placeholder="UID...">
+                <input type="text" id="loginId" class="w-full p-4 rounded-xl tech-font" placeholder="UID..." autocomplete="off">
             </div>
             <div>
                 <label class="admin-label">安全密碼</label>
-                <input type="password" id="loginPass" class="w-full p-4 rounded-xl tech-font" placeholder="••••••••" onkeydown="if(event.key==='Enter') attemptLogin()">
+                <input type="password" id="loginPass" class="w-full p-4 rounded-xl tech-font" placeholder="••••••••" onkeydown="if(event.key==='Enter') attemptLogin()" autocomplete="new-password">
             </div>
             <div class="flex flex-col sm:flex-row gap-4 pt-6">
                 <button onclick="closeLogin()" class="w-full sm:flex-1 py-4 rounded-xl border border-gray-700 text-gray-500 hover:text-white transition-all tech-font">取消</button>
@@ -142,7 +168,7 @@
             <h1 class="text-4xl sm:text-5xl md:text-7xl font-black tech-font tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-cyan-400 to-blue-600 leading-tight">
                 基隆 Su - <br class="md:hidden"><span class="italic text-cyan-500 text-3xl sm:text-4xl md:text-7xl">Computer Studio</span>
             </h1>
-            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.2.0</p>
+            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.2.0 (Cloud Sync)</p>
         </div>
         
         <button id="adminToggleBtn" onclick="toggleAdminState()" class="group relative px-8 py-3 md:px-12 md:py-5 bg-transparent overflow-hidden w-full lg:w-auto">
@@ -153,13 +179,13 @@
 
     <div id="adminPanel" class="hidden glass-card rounded-2xl p-4 md:p-8 mb-12 border-yellow-500/30">
         <div class="flex items-center gap-4 mb-6 md:mb-8 border-l-4 border-yellow-500 pl-4">
-            <h3 class="text-yellow-400 font-bold text-xl md:text-2xl tech-font tracking-widest">後臺資料庫管理</h3>
+            <h3 class="text-yellow-400 font-bold text-xl md:text-2xl tech-font tracking-widest">後臺雲端資料庫管理</h3>
             <div class="h-[1px] flex-1 bg-gradient-to-r from-yellow-500/50 to-transparent"></div>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
             <div class="space-y-4 w-full overflow-hidden">
-                <label class="admin-label"><i class="fas fa-layer-group mr-2"></i>資料庫清單 (依分類排序)</label>
+                <label class="admin-label"><i class="fas fa-cloud mr-2"></i>雲端資料庫清單 (即時同步)</label>
                 <div class="bg-black/30 p-4 rounded-xl border border-white/5">
                     <div class="flex flex-wrap gap-2 mb-4" id="catTagContainer"></div>
                     <div class="flex flex-col sm:flex-row gap-2">
@@ -184,7 +210,7 @@
             </div>
 
             <div class="space-y-4 md:space-y-6">
-                <label class="admin-label"><i class="fas fa-plus-square mr-2"></i>新增商品</label>
+                <label class="admin-label"><i class="fas fa-plus-square mr-2"></i>新增商品至雲端</label>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/10 shadow-2xl">
                     <div class="col-span-1 sm:col-span-2">
                         <label class="text-[10px] text-gray-500 ml-1">選擇分類</label>
@@ -206,7 +232,7 @@
                         <label class="text-[10px] text-gray-500 ml-1">初始庫存量</label>
                         <input type="number" id="newStock" class="w-full p-4 rounded-xl" placeholder="入庫數量">
                     </div>
-                    <button onclick="addItem()" class="col-span-1 sm:col-span-2 bg-cyan-600 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all tech-font mt-2 shadow-lg">商品新增確認</button>
+                    <button onclick="addItem()" class="col-span-1 sm:col-span-2 bg-cyan-600 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all tech-font mt-2 shadow-lg">商品新增並同步至雲端</button>
                 </div>
             </div>
         </div>
@@ -223,7 +249,13 @@
                     <th class="p-8 w-[20%] border-b border-cyan-900/50 text-left">小計</th>
                 </tr>
             </thead>
-            <tbody id="quoteTable" class="block md:table-row-group divide-y md:divide-white/5 divide-transparent"></tbody>
+            <tbody id="quoteTable" class="block md:table-row-group divide-y md:divide-white/5 divide-transparent">
+                <tr>
+                    <td colspan="5" class="p-12 text-center text-cyan-500 tech-font animate-pulse">
+                        <i class="fas fa-spinner fa-spin mr-3 text-xl"></i> 雲端資料庫同步中，請稍候...
+                    </td>
+                </tr>
+            </tbody>
         </table>
     </div>
 </div>
@@ -254,20 +286,24 @@
 </div>
 
 <button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
-    class="fixed bottom-[180px] md:bottom-[140px] right-4 md:right-6 bg-cyan-500 hover:bg-cyan-300 text-black w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_15px_rgba(0,243,255,0.6)] z-[999] opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 flex items-center justify-center">
+    class="fixed bottom-[180px] md:bottom-[140px] right-4 md:right-6 bg-cyan-500 hover:bg-cyan-300 text-black w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_15px_rgba(0,243,255,0.6)] z-[999] opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 flex items-center justify-center cursor-pointer">
     <i class="fas fa-arrow-up text-lg md:text-xl font-black"></i>
 </button>
 
 <script>
-    let categories = JSON.parse(localStorage.getItem('hw_cats_v2')) || ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
-    let hardwareData = JSON.parse(localStorage.getItem('hw_db_v2')) || [
+    // --- 預設預備資料 ---
+    const defaultCategories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
+    const defaultDB = [
         { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
         { cat: '顯示卡', name: 'RTX 4070 Ti Super', price: 28500, stock: 5, discount: 5, date: '2024/01/01' } 
     ];
+
+    let categories = [];
+    let hardwareData = [];
     let selectedRows = [];
     let isAdmin = false;
 
-    // 置頂按鈕邏輯
+    // --- 置頂按鈕邏輯 ---
     window.addEventListener('scroll', () => {
         const btn = document.getElementById('scrollTopBtn');
         if (window.scrollY > 300) {
@@ -279,7 +315,55 @@
         }
     });
 
-    // 管理功能
+    // --- 雲端資料同步邏輯 (Firebase) ---
+    async function loadFromFirebase() {
+        try {
+            if (window.firebaseGetDoc && window.firebaseDoc && window.firebaseDB) {
+                const docRef = window.firebaseDoc(window.firebaseDB, "settings", "computerData");
+                const docSnap = await window.firebaseGetDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    categories = data.categories || defaultCategories;
+                    hardwareData = data.hardwareData || defaultDB;
+                    console.log("✅ 成功載入 Firebase 雲端資料");
+                } else {
+                    // 初始化雲端資料庫
+                    categories = [...defaultCategories];
+                    hardwareData = [...defaultDB];
+                    await syncToFirebase();
+                }
+            } else {
+                throw new Error("Firebase SDK 未正確載入");
+            }
+        } catch (error) {
+            console.error("❌ Firebase 讀取失敗，載入本地備用資料: ", error);
+            categories = JSON.parse(localStorage.getItem('hw_cats_v2')) || defaultCategories;
+            hardwareData = JSON.parse(localStorage.getItem('hw_db_v2')) || defaultDB;
+        }
+    }
+
+    async function syncToFirebase() {
+        // 本地端雙重備份
+        localStorage.setItem('hw_cats_v2', JSON.stringify(categories));
+        localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
+        
+        try {
+            if (window.firebaseSetDoc && window.firebaseDoc && window.firebaseDB) {
+                const docRef = window.firebaseDoc(window.firebaseDB, "settings", "computerData");
+                await window.firebaseSetDoc(docRef, {
+                    categories: categories,
+                    hardwareData: hardwareData,
+                    lastUpdate: new Date().toLocaleDateString('zh-TW')
+                });
+                console.log("✅ 成功同步至 Firebase 雲端");
+            }
+        } catch (error) {
+            console.error("❌ 寫入 Firebase 失敗: ", error);
+        }
+    }
+
+    // --- 管理功能 ---
     function toggleAdminState() {
         document.getElementById('loginId').value = '';
         document.getElementById('loginPass').value = '';
@@ -307,7 +391,7 @@
             applyAdminUI(true);
             closeLogin();
         } else {
-            alert("驗證失敗");
+            alert("驗證失敗：帳號或密碼錯誤");
             document.getElementById('loginPass').value = '';
             document.getElementById('loginPass').focus();
         }
@@ -373,42 +457,42 @@
         }).join('');
     }
 
-    function addItem() {
+    async function addItem() {
         const cat = document.getElementById('newCat').value;
         const name = document.getElementById('newName').value.trim();
-        const price = Number(document.getElementById('newPrice').value);
-        const discount = Number(document.getElementById('itemDiscount').value); 
-        const stock = Number(document.getElementById('newStock').value);
+        const price = Number(document.getElementById('newPrice').value) || 0;
+        const discount = Number(document.getElementById('itemDiscount').value) || 0; 
+        const stock = Number(document.getElementById('newStock').value) || 0;
         const today = new Date().toLocaleDateString('zh-TW');
 
         if (!name) return alert("請輸入硬體名稱");
         const existingIdx = hardwareData.findIndex(h => h.cat === cat && h.name === name);
+        
         if (existingIdx !== -1) {
             alert(`⚠️ 錯誤：資料庫中已存在同分類的商品「${name}」，請直接在列表中修改。`);
             return;
         }
 
         hardwareData.push({ cat, name, price, discount, stock, date: today });
-        saveAndRefreshAdmin();
+        renderAdminItemList(); // 優先更新畫面
+        await syncToFirebase(); // 背景同步
+        
         ['newName', 'newPrice', 'newStock'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('itemDiscount').value = '0';
     }
 
-    function saveAndRefreshAdmin() {
-        localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
-        renderAdminItemList();
-    }
-
-    function editDB(idx, field, val) {
+    async function editDB(idx, field, val) {
+        if (idx < 0 || idx >= hardwareData.length) return;
         hardwareData[idx][field] = field === 'name' ? val : Number(val) || 0;
         hardwareData[idx].date = new Date().toLocaleDateString('zh-TW'); 
-        localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
+        
+        await syncToFirebase();
+        calculateGrandTotal(); // 若有相關修改也順便刷新前端總價
     }
 
-    function removeDBItem(idx) {
+    async function removeDBItem(idx) {
         if (confirm("確定刪除此資料？此操作無法還原。")) {
             hardwareData.splice(idx, 1);
-            localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
             
             selectedRows.forEach(row => {
                 if (String(row.itemIdx) === String(idx)) {
@@ -417,26 +501,65 @@
                     row.itemIdx = Number(row.itemIdx) - 1; 
                 }
             });
+
             renderAdminItemList();
+            await syncToFirebase();
+        }
+    }
+
+    async function addCategory() {
+        const name = document.getElementById('newCatName').value.trim();
+        if (name && !categories.includes(name)) {
+            categories.push(name);
+            await syncToFirebase();
+            
+            if (isAdmin) {
+                renderAdminItemList();
+            } else {
+                selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1 });
+                renderTable();
+            }
+            document.getElementById('newCatName').value = '';
+        }
+    }
+
+    async function removeCategory(index) {
+        if (confirm(`確定刪除「${categories[index]}」分類？`)) {
+            const catName = categories[index];
+            categories.splice(index, 1);
+            selectedRows = selectedRows.filter(r => r.cat !== catName); // 移除使用者的選取
+            
+            await syncToFirebase();
+            if (isAdmin) {
+                renderAdminItemList();
+            } else {
+                renderTable();
+            }
         }
     }
 
     // --- 使用者表格功能 (響應式修改) ---
     function renderTable() {
         const table = document.getElementById('quoteTable');
-        document.getElementById('newCat').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        
+        // 分類選單
+        const newCatEl = document.getElementById('newCat');
+        if (newCatEl) {
+            newCatEl.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+        
         document.getElementById('catTagContainer').innerHTML = categories.map((c, i) => `
             <div class="flex items-center gap-2 bg-cyan-950/40 border border-cyan-500/20 px-3 py-1 rounded">
                 <span class="text-xs tech-font text-cyan-300">${c}</span>
                 <i class="fas fa-times-circle text-[10px] cursor-pointer hover:text-red-500" onclick="removeCategory(${i})"></i>
             </div>`).join('');
-            
+
         table.innerHTML = categories.map(cat => {
             const catRows = selectedRows.filter(r => r.cat === cat);
             const hardwareOptions = hardwareData
                 .filter(h => h.cat === cat)
                 .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
-          
+            
             let selectionHtml = catRows.map((row, index) => {
                 const item = row.itemIdx !== "" ? hardwareData[row.itemIdx] : null;
                 const finalPrice = item ? Math.round(item.price * (1 - (item.discount / 100))) : 0;
@@ -540,11 +663,11 @@
 
         let inputQty = parseInt(val) || 1;
         row.stockWarning = false;
-        
+
         if (row.itemIdx !== "") {
             const item = hardwareData[row.itemIdx];
             if (item && inputQty > item.stock) {
-                inputQty = item.stock; 
+                inputQty = item.stock;
                 row.stockWarning = true; 
             }
         }
@@ -567,25 +690,6 @@
             }
         });
         document.getElementById('grandTotal').innerText = total.toLocaleString();
-    }
-
-    function addCategory() {
-        const name = document.getElementById('newCatName').value.trim();
-        if (name && !categories.includes(name)) {
-            categories.push(name);
-            localStorage.setItem('hw_cats_v2', JSON.stringify(categories));
-            selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1 });
-            renderTable();
-            document.getElementById('newCatName').value = '';
-        }
-    }
-
-    function removeCategory(index) {
-        if (confirm(`確定刪除「${categories[index]}」分類？`)) {
-            categories.splice(index, 1);
-            localStorage.setItem('hw_cats_v2', JSON.stringify(categories));
-            renderTable();
-        }
     }
 
     function updateSystemDate() {
@@ -629,13 +733,14 @@
                 { width: 10 }, 
                 { width: 18 }  
             ];
-
+            
             worksheet.mergeCells('A1:E1');
             const titleCell = worksheet.getCell('A1');
             titleCell.value = 'Su.Computer Studio | 電腦系統硬體報價單';
             titleCell.font = { size: 18, bold: true, color: { argb: 'FF333333' } };
             titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
             titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+            
             for(let i = 1; i <= 5; i++) {
                 worksheet.getCell(1, i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             }
@@ -646,7 +751,7 @@
             dateCell.value = '建立日期: ' + dateString;
             dateCell.font = { size: 10, color: { argb: 'FF666666' } };
             dateCell.alignment = { vertical: 'middle', horizontal: 'right' };
-
+            
             const headerRow = worksheet.addRow(['硬體分類', '商品型號', '單價 (折後)', '數量', '小計']);
             headerRow.height = 25;
             headerRow.eachCell((cell) => {
@@ -655,7 +760,7 @@
                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             });
-
+            
             let totalAmount = 0;
             let isEvenRow = true;
 
@@ -688,7 +793,7 @@
                 dataRow.getCell(1).font = { bold: true, color: { argb: 'FF333333' } }; 
                 isEvenRow = !isEvenRow;
             });
-
+            
             const footerRow = worksheet.addRow(['', '', '', '估價總金額：', totalAmount]);
             footerRow.height = 30;
             worksheet.mergeCells(`A${footerRow.number}:D${footerRow.number}`);
@@ -703,7 +808,7 @@
             footerTotal.font = { bold: true, size: 14, color: { argb: 'FFD93025' } };
             footerTotal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
             footerTotal.numFmt = '"NT$" #,##0';
-
+            
             for (let i = 1; i <= 5; i++) {
                 footerRow.getCell(i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             }
@@ -727,9 +832,31 @@
         }
     }
 
-    updateSystemDate();
-    categories.forEach(c => selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false }));
-    renderTable();
+    // --- 系統初始化 ---
+    window.initApp = async function() {
+        updateSystemDate();
+        await loadFromFirebase();
+        
+        // 確保至少有一列可供選擇
+        if (selectedRows.length === 0 && categories.length > 0) {
+            categories.forEach(c => selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false }));
+        }
+        
+        if (isAdmin) {
+            renderAdminItemList();
+        } else {
+            renderTable();
+        }
+    };
+
+    // 確保 Firebase SDK 完全載入後才執行
+    const checkFirebase = setInterval(() => {
+        if (window.firebaseSetDoc && window.firebaseGetDoc) {
+            clearInterval(checkFirebase);
+            window.initApp();
+        }
+    }, 100);
+
 </script>
 </body>
 </html>
