@@ -245,7 +245,7 @@
             </div>
         </div>
         
-        <div class="flex flex-row items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto md:flex-1 border-t border-cyan-900/50 md:border-t-0 pt-4 md:pt-0 mt-2 md:mt-0">
+        <div id="bottomActions" class="flex flex-row items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto md:flex-1 border-t border-cyan-900/50 md:border-t-0 pt-4 md:pt-0 mt-2 md:mt-0">
             <div class="text-left md:text-right">
                 <div class="text-[10px] md:text-xs uppercase tracking-[0.4em] md:tracking-[0.6em] text-cyan-500/50 font-black mb-1 md:mb-2">估價 總金額</div>
                 <div class="text-3xl sm:text-4xl md:text-6xl font-black tech-font text-emerald-400 total-glow flex items-baseline">
@@ -381,6 +381,7 @@
         const userDisplay = document.getElementById('userDisplay');
         const status = document.getElementById('authStatus');
         const btnText = document.getElementById('btnText');
+        const bottomActions = document.getElementById('bottomActions');
         
         if (state) {
             panel.classList.remove('hidden');
@@ -388,6 +389,7 @@
             status.innerText = "最高管理者權限";
             status.className = "text-yellow-400 font-bold";
             btnText.innerText = "登出 資料庫管理介面";
+            bottomActions.style.display = 'none'; // 管理員模式下隱藏匯出與總金額
             renderAdminItemList();
         } else {
             panel.classList.add('hidden');
@@ -395,11 +397,11 @@
             status.innerText = "使用者權限";
             status.className = "text-cyan-400 font-bold";
             btnText.innerText = "最高管理者登入";
+            bottomActions.style.display = ''; // 使用者模式下恢復顯示
             renderTable();
         }
     }
 
-    // --- 核心修正：優化行動裝置排版，運用 md:contents 無縫銜接桌面網格，並修復按鈕位置 ---
     function renderAdminItemList() {
         const container = document.getElementById('adminItemEditList');
         const sortedDB = [...hardwareData].sort((a, b) => {
@@ -528,9 +530,16 @@
                 .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
             
             let selectionHtml = catRows.map((row, index) => {
-                const item = row.itemIdx !== "" ? hardwareData[row.itemIdx] : null;
+                const isItemEmpty = row.itemIdx === ""; // 判斷是否為預設未選擇狀態
+                const item = !isItemEmpty ? hardwareData[row.itemIdx] : null;
                 const finalPrice = item ? Math.round(item.price * (1 - (item.discount / 100))) : 0;
                 const rowBgClass = index % 2 === 0 ? "bg-black/20" : "bg-cyan-900/20";
+
+                // 動態判斷刪除按鈕外觀：未選擇時反灰禁止點擊
+                const deleteBtnClass = isItemEmpty 
+                    ? "absolute top-3 right-3 md:static text-gray-600 p-2 bg-gray-900/20 rounded-full md:bg-transparent md:rounded-none cursor-not-allowed opacity-40" 
+                    : "absolute top-3 right-3 md:static text-red-900/60 hover:text-red-500 p-2 transition-colors bg-red-950/20 rounded-full md:bg-transparent md:rounded-none";
+                const deleteBtnAttr = isItemEmpty ? "disabled" : `onclick="removeRow(${row.id})"`;
 
                 return `
                 <div class="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 mb-4 group/row ${rowBgClass} p-4 md:p-2 rounded-xl relative border border-white/5 md:border-none">
@@ -570,7 +579,7 @@
                         <span>$ ${(finalPrice * row.qty).toLocaleString()}</span>
                     </div>
 
-                    <button onclick="removeRow(${row.id})" class="absolute top-3 right-3 md:static text-red-900/60 hover:text-red-500 p-2 transition-colors bg-red-950/20 rounded-full md:bg-transparent md:rounded-none">
+                    <button ${deleteBtnAttr} class="${deleteBtnClass}">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>`;
@@ -654,7 +663,20 @@
     };
 
     window.removeRow = function(id) {
-        selectedRows = selectedRows.filter(r => r.id !== id);
+        const targetRow = selectedRows.find(r => r.id === id);
+        if (!targetRow) return;
+
+        const sameCatRows = selectedRows.filter(r => r.cat === targetRow.cat);
+        
+        if (sameCatRows.length > 1) {
+            // 如果該分類下有多個組件，則直接將其移除
+            selectedRows = selectedRows.filter(r => r.id !== id);
+        } else {
+            // 如果這是該分類唯一的組件，重置回預設空白狀態（不會把分類區塊清空）
+            targetRow.itemIdx = "";
+            targetRow.qty = 1;
+            targetRow.stockWarning = false;
+        }
         renderTable();
     };
 
