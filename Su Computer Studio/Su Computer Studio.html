@@ -68,17 +68,15 @@
         .quote-row:hover { background: rgba(0, 243, 255, 0.05); }
 
         .admin-row-odd { 
-            background: rgba(20, 90, 140, 0.6);
+            background: rgba(20, 90, 140, 0.3);
             border-left: 4px solid var(--neon-cyan); 
-            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
         }
         .admin-row-even { 
-            background: rgba(20, 15, 35, 0.95);
+            background: rgba(20, 15, 35, 0.6);
             border-left: 4px solid #b148ff; 
-            box-shadow: inset 0 0 10px rgba(177, 72, 255, 0.05);
         }
         .admin-row-odd:hover, .admin-row-even:hover {
-            filter: brightness(1.3);
+            filter: brightness(1.2);
             border-left-color: var(--neon-yellow);
         }
 
@@ -105,6 +103,16 @@
         input:focus, select:focus { 
             border-color: var(--neon-cyan) !important;
             box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); 
+        }
+
+        /* 隱藏原生數字上下箭頭以利自訂按鈕 */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
         }
 
         #newName { border-left: 4px solid var(--neon-cyan) !important; }
@@ -145,7 +153,7 @@
             <h1 class="text-4xl sm:text-5xl md:text-7xl font-black tech-font tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-cyan-400 to-blue-600 leading-tight">
                 基隆 Su - <br class="md:hidden"><span class="italic text-cyan-500 text-3xl sm:text-4xl md:text-7xl">Computer Studio</span>
             </h1>
-            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.2.0</p>
+            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.3.0</p>
         </div>
         
         <button id="adminToggleBtn" onclick="toggleAdminState()" class="group relative px-8 py-3 md:px-12 md:py-5 bg-transparent overflow-hidden w-full lg:w-auto">
@@ -160,7 +168,7 @@
             <div class="h-[1px] flex-1 bg-gradient-to-r from-yellow-500/50 to-transparent"></div>
         </div>
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 md:gap-10">
             <div class="space-y-4 w-full overflow-hidden">
                 <label class="admin-label"><i class="fas fa-layer-group mr-2"></i>資料庫清單 (依分類排序)</label>
                 <div class="bg-black/30 p-4 rounded-xl border border-white/5">
@@ -170,46 +178,45 @@
                         <button onclick="addCategory()" class="bg-yellow-600 hover:bg-yellow-500 text-black px-6 py-3 sm:py-0 rounded-lg font-bold transition-all">新增分類</button>
                     </div>
                 </div>
-                <div class="overflow-x-auto w-full pb-2">
-                    <div class="min-w-[750px]">
-                        <div class="flex gap-2 px-3 py-2 text-xs font-bold text-cyan-500 uppercase tracking-widest bg-cyan-950/20 rounded items-center">
-                            <div class="w-20 md:w-24 pl-2">分類</div>
-                            <div class="flex-1">名稱規格</div>
-                            <div class="w-20 text-center">定價</div>
-                            <div class="w-16 text-center">折扣(%)</div>
-                            <div class="w-16 text-center">庫存</div>
-                            <div class="w-20 text-center">更新日期</div>
-                            <div class="w-10"></div>
-                        </div>
-                        <div id="adminItemEditList" class="space-y-1 max-h-[600px] overflow-y-auto pr-2 border border-white/5 rounded-lg pb-4 mt-2"></div>
+                
+                <div class="w-full pb-2 mt-4">
+                    <div class="hidden md:grid grid-cols-[100px_1fr_100px_80px_80px_100px_40px] gap-3 px-4 py-3 text-xs font-bold text-cyan-500 uppercase tracking-widest bg-cyan-950/20 rounded-t-xl items-center border border-cyan-500/20 border-b-0">
+                        <div class="text-center">分類</div>
+                        <div>名稱規格</div>
+                        <div class="text-center">定價</div>
+                        <div class="text-center">折扣(%)</div>
+                        <div class="text-center">庫存</div>
+                        <div class="text-center">更新日期</div>
+                        <div></div>
                     </div>
+                    <div id="adminItemEditList" class="space-y-4 md:space-y-1 max-h-[700px] overflow-y-auto pr-1 md:pr-2 border border-white/5 md:border-t-0 rounded-xl md:rounded-t-none pb-4 md:mt-0 p-2 md:p-2 bg-black/20"></div>
                 </div>
             </div>
 
             <div class="space-y-4 md:space-y-6">
                 <label class="admin-label"><i class="fas fa-plus-square mr-2"></i>新增商品</label>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/10 shadow-2xl">
-                    <div class="col-span-1 sm:col-span-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/10 shadow-2xl">
+                    <div class="col-span-1 sm:col-span-2 lg:col-span-1">
                         <label class="text-[10px] text-gray-500 ml-1">選擇分類</label>
                         <select id="newCat" class="w-full p-4 rounded-xl"></select>
                     </div>
-                    <div class="col-span-1 sm:col-span-2">
+                    <div class="col-span-1 sm:col-span-2 lg:col-span-1">
                         <label class="text-[10px] text-gray-500 ml-1">硬體名稱</label>
                         <input type="text" id="newName" class="w-full p-4 rounded-xl" placeholder="例如: Intel i9-14900K">
                     </div>
-                    <div>
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
                         <label class="text-[10px] text-gray-500 ml-1">零售價格</label>
                         <input type="number" id="newPrice" class="w-full p-4 rounded-xl" placeholder="定價">
                     </div>
-                    <div>
+                    <div class="col-span-1 sm:col-span-1 lg:col-span-1">
                         <label class="text-[10px] text-gray-500 ml-1">折扣幅度 (0%~100%)</label>
                         <input type="number" id="itemDiscount" class="w-full p-4 rounded-xl text-yellow-500" value="0" min="0" max="100">
                     </div>
-                    <div class="col-span-1 sm:col-span-2">
+                    <div class="col-span-1 sm:col-span-2 lg:col-span-1">
                         <label class="text-[10px] text-gray-500 ml-1">初始庫存量</label>
                         <input type="number" id="newStock" class="w-full p-4 rounded-xl" placeholder="入庫數量">
                     </div>
-                    <button onclick="addItem()" class="col-span-1 sm:col-span-2 bg-cyan-600 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all tech-font mt-2 shadow-lg">商品新增確認</button>
+                    <button onclick="addItem()" class="col-span-1 sm:col-span-2 lg:col-span-1 bg-cyan-600 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all tech-font mt-2 shadow-lg">商品新增確認</button>
                 </div>
             </div>
         </div>
@@ -256,8 +263,7 @@
     </div>
 </div>
 
-<button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
-    class="fixed bottom-[180px] md:bottom-[140px] right-4 md:right-6 bg-cyan-500 hover:bg-cyan-300 text-black w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_15px_rgba(0,243,255,0.6)] z-[999] opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 flex items-center justify-center">
+<button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="fixed bottom-[180px] md:bottom-[140px] right-4 md:right-6 bg-cyan-500 hover:bg-cyan-300 text-black w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_15px_rgba(0,243,255,0.6)] z-[999] opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 flex items-center justify-center">
     <i class="fas fa-arrow-up text-lg md:text-xl font-black"></i>
 </button>
 
@@ -279,8 +285,6 @@
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
-    
-    // 定義 Firestore 資料庫參考
     const dbRef = doc(db, "su_system", "current_db");
 
     let categories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
@@ -300,6 +304,13 @@
             
             if(selectedRows.length === 0) {
                 initializeSelectedRows();
+            } else {
+                // 核心修正：確保當有新分類被載入時，畫面上會自動初始化一列對應的空選單（解決不出現下拉選單的問題）
+                categories.forEach(c => {
+                    if (!selectedRows.some(r => r.cat === c)) {
+                        selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false });
+                    }
+                });
             }
 
             if (isAdmin) renderAdminItemList();
@@ -337,7 +348,6 @@
         }
     });
 
-    // 暴露函數到全域，解決 type="module" 作用域問題
     window.toggleAdminState = function() {
         document.getElementById('loginId').value = '';
         document.getElementById('loginPass').value = '';
@@ -376,7 +386,6 @@
         const userDisplay = document.getElementById('userDisplay');
         const status = document.getElementById('authStatus');
         const btnText = document.getElementById('btnText');
-
         if (state) {
             panel.classList.remove('hidden');
             userDisplay.classList.add('hidden');
@@ -394,6 +403,7 @@
         }
     }
 
+    // 核心修正：管理清單全面改為響應式 Grid 結構，確保手機版與電腦版皆完美對齊
     function renderAdminItemList() {
         const container = document.getElementById('adminItemEditList');
         const sortedDB = [...hardwareData].sort((a, b) => {
@@ -403,7 +413,7 @@
             if(idxB === -1) idxB = 999;
             return idxA - idxB;
         });
-
+        
         let lastCat = "";
         let rowCounter = 0; 
 
@@ -416,17 +426,43 @@
             const rowClass = (rowCounter % 2 !== 0) ? 'admin-row-odd' : 'admin-row-even';
 
             return `
-            ${isNewGroup ? `<div class="bg-cyan-500/20 py-2 px-4 text-[11px] font-black text-cyan-300 border-y border-cyan-500/40 mt-4 shadow-[0_0_10px_rgba(0,243,255,0.1)] tracking-widest">${item.cat} 分類區塊</div>` : ''}
-            <div class="${rowClass} flex items-center gap-2 p-3 text-sm transition-all min-w-max">
-                <div class="w-20 md:w-24 text-center">
-                    <span class="bg-black/50 text-cyan-400 px-2 py-1 rounded text-[10px] border border-cyan-500/30">${item.cat}</span>
+            ${isNewGroup ? `<div class="bg-cyan-500/20 py-2 px-4 text-[12px] md:text-[11px] font-black text-cyan-300 border-y border-cyan-500/40 mt-6 md:mt-2 shadow-[0_0_10px_rgba(0,243,255,0.1)] tracking-widest sticky top-0 z-10 backdrop-blur-md">${item.cat} 分類區塊</div>` : ''}
+            
+            <div class="${rowClass} grid grid-cols-2 md:grid-cols-[100px_1fr_100px_80px_80px_100px_40px] gap-3 items-center p-4 md:p-3 text-sm transition-all rounded-xl md:rounded-none border border-white/5 md:border-transparent relative shadow-lg md:shadow-none">
+                
+                <div class="col-span-2 md:col-span-1 flex justify-between md:justify-center items-center">
+                    <span class="md:hidden text-[11px] text-gray-500 font-bold">分類標籤</span>
+                    <span class="bg-black/50 text-cyan-400 px-3 md:px-2 py-1 rounded text-[12px] md:text-[10px] border border-cyan-500/30 shadow-[0_0_8px_rgba(0,243,255,0.2)]">${item.cat}</span>
                 </div>
-                <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-48 md:flex-1 p-2 rounded border-transparent">
-                <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-20 p-2 rounded text-right" title="原價">
-                <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-16 p-2 rounded text-yellow-500 text-center" min="0" max="100" title="折扣幅度(%)">
-                <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-16 p-2 rounded text-center" title="庫存量">
-                <div class="w-20 text-center text-[10px] text-gray-400 mono-font">${item.date || '未紀錄'}</div>
-                <button onclick="removeDBItem(${originalIdx})" class="text-red-500/50 hover:text-red-500 w-10 text-right pr-2 transition-colors"><i class="fas fa-trash-alt"></i></button>
+                
+                <div class="col-span-2 md:col-span-1">
+                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">名稱規格</label>
+                    <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded bg-black/60 md:bg-black/40 border-gray-700">
+                </div>
+                
+                <div>
+                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">定價</label>
+                    <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded text-right bg-black/60 md:bg-black/40 border-gray-700" title="原價">
+                </div>
+                
+                <div>
+                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">折扣(%)</label>
+                    <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded text-yellow-500 text-center bg-black/60 md:bg-black/40 border-gray-700" min="0" max="100" title="折扣幅度(%)">
+                </div>
+                
+                <div>
+                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">庫存</label>
+                    <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded text-center bg-black/60 md:bg-black/40 border-gray-700" title="庫存量">
+                </div>
+                
+                <div class="col-span-1 md:col-span-1 flex flex-col justify-center text-center">
+                    <label class="md:hidden text-[10px] text-gray-500 mb-1 block">更新日期</label>
+                    <div class="text-[12px] md:text-[10px] text-gray-400 mono-font">${item.date || '未紀錄'}</div>
+                </div>
+                
+                <div class="absolute top-3 right-3 md:relative md:top-0 md:right-0 md:col-span-1 text-right">
+                    <button onclick="removeDBItem(${originalIdx})" class="text-red-500/50 hover:text-red-500 w-10 h-10 md:w-full text-center transition-colors bg-red-950/20 md:bg-transparent rounded-full md:rounded-none"><i class="fas fa-trash-alt"></i></button>
+                </div>
             </div>`;
         }).join('');
     }
@@ -448,7 +484,6 @@
 
         hardwareData.push({ cat, name, price, discount, stock, date: today });
         saveToFirebase();
-
         ['newName', 'newPrice', 'newStock'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('itemDiscount').value = '0';
     };
@@ -514,14 +549,20 @@
                     <div class="w-full md:w-[18%] md:pl-4 tech-font flex justify-between md:block items-center mt-2 md:mt-0">
                         <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">單價</span>
                         <div class="text-right md:text-left">
-                            ${item ? (item.discount > 0 ? `<div class="text-[10px] md:text-xs line-through opacity-40">$${item.price.toLocaleString()}</div><div class="price-sale text-lg md:text-xl">$${finalPrice.toLocaleString()}</div>` : `<span class="text-cyan-400 text-lg md:text-xl">$${item.price.toLocaleString()}</span>`) : '<span class="text-gray-600">---</span>'}
+                            ${item ?
+                            (item.discount > 0 ? `<div class="text-[10px] md:text-xs line-through opacity-40">$${item.price.toLocaleString()}</div><div class="price-sale text-lg md:text-xl">$${finalPrice.toLocaleString()}</div>` : `<span class="text-cyan-400 text-lg md:text-xl">$${item.price.toLocaleString()}</span>`) : '<span class="text-gray-600">---</span>'}
                         </div>
                     </div>
 
                     <div class="w-full md:w-[18%] md:pl-4 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start border-t border-dashed border-white/10 md:border-none pt-3 md:pt-0">
                         <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">數量</span>
+                        
                         <div class="flex flex-col items-end md:items-start">
-                            <input type="number" value="${row.qty}" min="1" onchange="updateQty(${row.id}, this.value)" class="w-24 md:w-32 p-2 md:p-4 rounded-xl text-center font-black bg-gray-900 border-gray-700 ${row.stockWarning ? 'border-red-500 shadow-[0_0_10px_rgba(255,49,49,0.5)] text-red-400' : ''}">
+                            <div class="flex items-center rounded-xl overflow-hidden bg-gray-900 border border-gray-700 ${row.stockWarning ? 'border-red-500 shadow-[0_0_10px_rgba(255,49,49,0.5)]' : ''}">
+                                <button type="button" onclick="changeQty(${row.id}, -1)" class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-cyan-500 hover:bg-gray-800 transition-colors bg-black/40"><i class="fas fa-minus"></i></button>
+                                <input type="number" value="${row.qty}" min="1" onchange="updateQty(${row.id}, this.value)" class="w-12 md:w-16 p-0 h-10 md:h-12 text-center font-black bg-transparent border-none focus:ring-0 ${row.stockWarning ? 'text-red-400' : 'text-white'}">
+                                <button type="button" onclick="changeQty(${row.id}, 1)" class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-cyan-500 hover:bg-gray-800 transition-colors bg-black/40"><i class="fas fa-plus"></i></button>
+                            </div>
                             ${item ? (row.stockWarning ? `<div class="mt-1 text-red-500 text-[10px] md:text-[12px] font-bold"><i class="fas fa-exclamation-triangle"></i>庫存不足 剩餘: ${item.stock}</div>` : `<div class="mt-1 text-cyan-600/70 text-[10px] md:text-[12px]"><i class="fas fa-box"></i> 庫存量: ${item.stock}</div>`) : ''}
                         </div>
                     </div>
@@ -605,6 +646,16 @@
         renderTable();
     };
 
+    // 用來支援按鈕加減數量的功能
+    window.changeQty = function(id, delta) {
+        const row = selectedRows.find(r => r.id === id);
+        if (row) {
+            let newVal = parseInt(row.qty) + delta;
+            if (newVal < 1) newVal = 1;
+            updateQty(id, newVal);
+        }
+    };
+
     window.removeRow = function(id) {
         selectedRows = selectedRows.filter(r => r.id !== id);
         renderTable();
@@ -625,12 +676,13 @@
         const name = document.getElementById('newCatName').value.trim();
         if (name && !categories.includes(name)) {
             categories.push(name);
-            selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1 });
+            // 本機推入，讓存檔前 selectedRows 擁有預設值
+            selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1, stockWarning: false });
             saveToFirebase();
             document.getElementById('newCatName').value = '';
         }
     };
-
+    
     window.removeCategory = function(index) {
         if (confirm(`確定刪除「${categories[index]}」分類？`)) {
             categories.splice(index, 1);
