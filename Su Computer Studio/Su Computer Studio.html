@@ -225,8 +225,8 @@
     </div>
 </div>
 
-<div class="fixed left-0 right-0 glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 z-[5000]" 
-     style="bottom: 0 !important; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateZ(0); -webkit-transform: translateZ(0);">
+<div class="fixed left-0 right-0 w-full glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 z-[9999]" 
+     style="position: fixed !important; bottom: 0 !important; padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
     <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
         <div class="flex items-center gap-4 md:gap-10">
             <div class="h-10 md:h-12 w-[3px] bg-cyan-500 shadow-[0_0_15px_#00f3ff]"></div>
@@ -283,13 +283,22 @@
     ];
     let selectedRows = [];
     let isAdmin = false;
+    
+    // 【效能優化】防止本地儲存觸發 Firebase snapshot 導致的畫面重繪與焦點流失
+    let localDataString = ""; 
 
-    // --- 新增：閒置自動登出相關變數與函數 ---
+    // --- 閒置自動登出相關變數與函數 ---
     let idleTimer = null;
-    const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 分鐘 = 600,000 毫秒
+    const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 分鐘
+    let lastActivity = Date.now();
 
+    // 【效能優化】加入 Throttle 節流，防止滑鼠移動瘋狂觸發重置造成效能負載
     function resetIdleTimer() {
         if (!isAdmin) return;
+        const now = Date.now();
+        if (now - lastActivity < 1000) return; // 每秒最多重置一次
+        lastActivity = now;
+        
         clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
             if (isAdmin) {
@@ -300,7 +309,6 @@
         }, IDLE_TIMEOUT);
     }
 
-    // 監聽全域事件，只要有動作就重置計時器
     ['click', 'mousemove', 'keypress', 'scroll', 'touchstart', 'touchmove'].forEach(event => {
         window.addEventListener(event, () => {
             if (isAdmin) resetIdleTimer();
@@ -308,28 +316,42 @@
     });
     // ------------------------------------
 
-    // 動態產生專屬分類顏色
+    // 【升級】動態產生專屬分類顏色 (支援 35+ 種以上不同顏色，不會混淆)
     function getCatColorStyles(catName) {
         let idx = categories.indexOf(catName);
         if(idx === -1) idx = 0;
-        const hue = (idx * 137.5) % 360;
+        
+        // 利用黃金角散布 Hue，並交替改變飽和度與亮度，創造出多達百種的高辨識度霓虹色
+        const hue = (idx * 137.508) % 360; 
+        const sat = 65 + (idx % 4) * 10;   // 飽和度在 65%, 75%, 85%, 95% 間輪替
+        const litBase = (idx % 3) * 6;     // 亮度基礎偏移 0%, 6%, 12%
+        
         return {
-            bg: `hsla(${hue}, 60%, 15%, 0.85)`,
-            gradient: `linear-gradient(90deg, hsla(${hue}, 60%, 10%, 0.8), hsla(${hue}, 60%, 20%, 0.95), hsla(${hue}, 60%, 10%, 0.8))`,
-            border: `hsla(${hue}, 70%, 40%, 0.5)`,
-            text: `hsla(${hue}, 80%, 70%, 1)`,
-            tagBg: `hsla(${hue}, 60%, 20%, 0.4)`,
-            rowOdd: `hsla(${hue}, 40%, 12%, 0.6)`,
-            rowEven: `hsla(${hue}, 40%, 8%, 0.8)`,
+            bg: `hsla(${hue}, ${sat}%, 15%, 0.85)`,
+            gradient: `linear-gradient(90deg, hsla(${hue}, ${sat}%, 10%, 0.8), hsla(${hue}, ${sat}%, 20%, 0.95), hsla(${hue}, ${sat}%, 10%, 0.8))`,
+            border: `hsla(${hue}, ${sat}%, ${40 + litBase}%, 0.5)`,
+            text: `hsla(${hue}, ${sat}%, ${70 + litBase}%, 1)`,
+            tagBg: `hsla(${hue}, ${sat}%, 20%, 0.4)`,
+            rowOdd: `hsla(${hue}, ${sat - 15}%, 12%, 0.6)`,
+            rowEven: `hsla(${hue}, ${sat - 15}%, 8%, 0.8)`,
         };
     }
 
     onSnapshot(dbRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            // 【效能優化】Deep Equality 比對：若遠端資料與本地一致，阻止畫面強制重繪
+            const remoteDataString = JSON.stringify(data);
+            if (localDataString === remoteDataString) return; 
+
             categories = data.categories || categories;
             hardwareData = data.hardwareData || hardwareData;
+            localDataString = remoteDataString; // 更新比對字串
             
+            // 清理已刪除的分類殘影
+            selectedRows = selectedRows.filter(r => categories.includes(r.cat));
+
             if(selectedRows.length === 0) {
                 initializeSelectedRows();
             } else {
@@ -349,6 +371,9 @@
 
     async function saveToFirebase() {
         try {
+            // 【效能優化】送出前先更新本地比對字串，避免收到自己送出的 snapshot 造成閃爍
+            localDataString = JSON.stringify({ categories, hardwareData });
+            
             await setDoc(dbRef, {
                 categories: categories,
                 hardwareData: hardwareData
@@ -382,7 +407,7 @@
         if (isAdmin) {
             isAdmin = false;
             applyAdminUI(false);
-            clearTimeout(idleTimer); // 主動登出時清除計時器
+            clearTimeout(idleTimer); 
         } else {
             document.getElementById('loginModal').style.display = 'flex';
             document.getElementById('loginId').focus();
@@ -398,11 +423,12 @@
     window.attemptLogin = function() {
         const id = document.getElementById('loginId').value;
         const pass = document.getElementById('loginPass').value;
-        if (id === "Koralba" && pass === "suting") {
+        if (id === "koralba" && pass === "suting") {
             isAdmin = true;
             applyAdminUI(true);
             closeLogin();
-            resetIdleTimer(); // 登入成功後開始計時
+            lastActivity = 0; // 強制初始化時間
+            resetIdleTimer();
         } else {
             alert("驗證失敗");
             document.getElementById('loginPass').value = '';
