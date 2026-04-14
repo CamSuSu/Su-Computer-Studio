@@ -11,6 +11,7 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        
         :root {
             --neon-cyan: #00f3ff;
             --neon-red: #ff3131;
@@ -164,7 +165,7 @@
                         <button onclick="addCategory()" class="bg-yellow-600 hover:bg-yellow-500 text-black px-6 py-3 sm:py-0 rounded-lg font-bold transition-all">新增分類</button>
                     </div>
                 </div>
-                
+            
                 <div class="w-full pb-2 mt-4">
                     <div class="hidden md:grid grid-cols-[100px_1fr_100px_80px_80px_100px_40px] gap-3 px-4 py-3 text-xs font-bold text-cyan-500 uppercase tracking-widest bg-cyan-950/20 rounded-t-xl items-center border border-cyan-500/20 border-b-0">
                         <div class="text-center">分類</div>
@@ -224,12 +225,14 @@
     </div>
 </div>
 
-<div class="fixed bottom-0 left-0 right-0 glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 pb-4 md:pb-6 z-[900]" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
+<div class="fixed left-0 right-0 glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 z-[5000]" 
+     style="bottom: 0 !important; padding-bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateZ(0); -webkit-transform: translateZ(0);">
     <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
         <div class="flex items-center gap-4 md:gap-10">
             <div class="h-10 md:h-12 w-[3px] bg-cyan-500 shadow-[0_0_15px_#00f3ff]"></div>
             <div class="mono-font text-[10px] md:text-xs leading-relaxed text-gray-400">
-                <span class="text-cyan-500 opacity-60">當前授權狀態:</span> <span id="authStatus" class="text-cyan-400 font-bold">使用者權限</span><br>
+                <span class="text-cyan-500 opacity-60">當前授權狀態:</span> 
+                <span id="authStatus" class="text-cyan-400 font-bold">使用者權限</span><br>
                 <span class="text-cyan-500 opacity-60">最新報價更新日:</span> <span id="updateDate" class="text-white/80"></span>
             </div>
         </div>
@@ -257,6 +260,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+    
     const firebaseConfig = {
         apiKey: "AIzaSyBxwPsNRCbYLbrILVevw1zP9JZsZHRjFQw",
         authDomain: "su-computer-studio-225e1.firebaseapp.com",
@@ -266,10 +270,12 @@
         appId: "1:220949673626:web:6c767c20f681edfcc65123",
         measurementId: "G-9YFL980C3F"
     };
+    
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
     const dbRef = doc(db, "su_system", "current_db");
+    
     let categories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
     let hardwareData = [
         { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
@@ -278,12 +284,35 @@
     let selectedRows = [];
     let isAdmin = false;
 
-    // 動態產生專屬分類顏色 (支援無限數量，利用黃金角演算法保證相鄰顏色差異大)
+    // --- 新增：閒置自動登出相關變數與函數 ---
+    let idleTimer = null;
+    const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 分鐘 = 600,000 毫秒
+
+    function resetIdleTimer() {
+        if (!isAdmin) return;
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+            if (isAdmin) {
+                isAdmin = false;
+                applyAdminUI(false);
+                alert("為保護資料庫安全，管理者介面閒置超過 10 分鐘，已自動登出。");
+            }
+        }, IDLE_TIMEOUT);
+    }
+
+    // 監聽全域事件，只要有動作就重置計時器
+    ['click', 'mousemove', 'keypress', 'scroll', 'touchstart', 'touchmove'].forEach(event => {
+        window.addEventListener(event, () => {
+            if (isAdmin) resetIdleTimer();
+        }, { passive: true });
+    });
+    // ------------------------------------
+
+    // 動態產生專屬分類顏色
     function getCatColorStyles(catName) {
         let idx = categories.indexOf(catName);
         if(idx === -1) idx = 0;
-        // 137.5度能讓每次產生的色相均勻分布於 360 度的色環中，產生出大於 30 種明顯區分的顏色
-        const hue = (idx * 137.5) % 360; 
+        const hue = (idx * 137.5) % 360;
         return {
             bg: `hsla(${hue}, 60%, 15%, 0.85)`,
             gradient: `linear-gradient(90deg, hsla(${hue}, 60%, 10%, 0.8), hsla(${hue}, 60%, 20%, 0.95), hsla(${hue}, 60%, 10%, 0.8))`,
@@ -353,6 +382,7 @@
         if (isAdmin) {
             isAdmin = false;
             applyAdminUI(false);
+            clearTimeout(idleTimer); // 主動登出時清除計時器
         } else {
             document.getElementById('loginModal').style.display = 'flex';
             document.getElementById('loginId').focus();
@@ -372,6 +402,7 @@
             isAdmin = true;
             applyAdminUI(true);
             closeLogin();
+            resetIdleTimer(); // 登入成功後開始計時
         } else {
             alert("驗證失敗");
             document.getElementById('loginPass').value = '';
@@ -385,6 +416,7 @@
         const status = document.getElementById('authStatus');
         const btnText = document.getElementById('btnText');
         const bottomActions = document.getElementById('bottomActions');
+        
         if (state) {
             panel.classList.remove('hidden');
             userDisplay.classList.add('hidden');
@@ -413,6 +445,7 @@
             if(idxB === -1) idxB = 999;
             return idxA - idxB;
         });
+        
         let lastCat = "";
         let rowCounter = 0; 
 
@@ -479,6 +512,7 @@
 
         if (!name) return alert("請輸入硬體名稱");
         const existingIdx = hardwareData.findIndex(h => h.cat === cat && h.name === name);
+        
         if (existingIdx !== -1) {
             alert(`⚠️ 錯誤：資料庫中已存在同分類的商品「${name}」，請直接在列表中修改。`);
             return;
@@ -486,6 +520,7 @@
 
         hardwareData.push({ cat, name, price, discount, stock, date: today });
         saveToFirebase();
+        
         ['newName', 'newPrice', 'newStock'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('itemDiscount').value = '0';
     };
@@ -513,6 +548,7 @@
 
     function renderTable() {
         const table = document.getElementById('quoteTable');
+        
         if(document.getElementById('newCat')) {
             document.getElementById('newCat').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
         }
@@ -536,12 +572,11 @@
             const catColor = getCatColorStyles(cat);
 
             let selectionHtml = catRows.map((row, index) => {
-                const isItemEmpty = row.itemIdx === ""; // 判斷是否為預設未選擇狀態
+                const isItemEmpty = row.itemIdx === "";
                 const item = !isItemEmpty ? hardwareData[row.itemIdx] : null;
                 const finalPrice = item ? Math.round(item.price * (1 - (item.discount / 100))) : 0;
                 const rowBgClass = index % 2 === 0 ? "bg-black/20" : "bg-cyan-900/20";
 
-                // 動態判斷刪除按鈕外觀：未選擇時反灰禁止點擊
                 const deleteBtnClass = isItemEmpty 
                     ? "absolute top-3 right-3 md:static text-gray-600 p-2 bg-gray-900/20 rounded-full md:bg-transparent md:rounded-none cursor-not-allowed opacity-40" 
                     : "absolute top-3 right-3 md:static text-red-900/60 hover:text-red-500 p-2 transition-colors bg-red-950/20 rounded-full md:bg-transparent md:rounded-none";
@@ -569,7 +604,6 @@
 
                     <div class="w-full md:w-[18%] md:pl-4 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start border-t border-dashed border-white/10 md:border-none pt-3 md:pt-0">
                         <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">數量</span>
-                        
                         <div class="flex flex-col items-end md:items-start">
                             <div class="flex items-center rounded-xl overflow-hidden bg-gray-900 border border-gray-700 ${row.stockWarning ? 'border-red-500 shadow-[0_0_10px_rgba(255,49,49,0.5)]' : ''}">
                                 <button type="button" onclick="changeQty(${row.id}, -1)" class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-cyan-500 hover:bg-gray-800 transition-colors bg-black/40"><i class="fas fa-minus"></i></button>
@@ -725,6 +759,7 @@
         const btnTextEl = document.getElementById('exportBtnText');
         const originalText = btnTextEl.innerText;
         btnTextEl.innerText = '產生中...';
+        
         try {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('電腦報價單');
@@ -749,12 +784,14 @@
                 { width: 10 }, 
                 { width: 18 }  
             ];
+            
             worksheet.mergeCells('A1:E1');
             const titleCell = worksheet.getCell('A1');
             titleCell.value = 'Su.Computer Studio | 電腦系統硬體報價單';
             titleCell.font = { size: 18, bold: true, color: { argb: 'FF333333' } };
             titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
             titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+            
             for(let i = 1; i <= 5; i++) {
                 worksheet.getCell(1, i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             }
@@ -765,6 +802,7 @@
             dateCell.value = '建立日期: ' + dateString;
             dateCell.font = { size: 10, color: { argb: 'FF666666' } };
             dateCell.alignment = { vertical: 'middle', horizontal: 'right' };
+            
             const headerRow = worksheet.addRow(['硬體分類', '商品型號', '單價 (折後)', '數量', '小計']);
             headerRow.height = 25;
             headerRow.eachCell((cell) => {
@@ -773,6 +811,7 @@
                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             });
+            
             let totalAmount = 0;
             let isEvenRow = true;
 
@@ -804,6 +843,7 @@
                 dataRow.getCell(1).font = { bold: true, color: { argb: 'FF333333' } }; 
                 isEvenRow = !isEvenRow;
             });
+            
             const footerRow = worksheet.addRow(['', '', '', '估價總金額：', totalAmount]);
             footerRow.height = 30;
             worksheet.mergeCells(`A${footerRow.number}:D${footerRow.number}`);
@@ -818,6 +858,7 @@
             footerTotal.font = { bold: true, size: 14, color: { argb: 'FFD93025' } };
             footerTotal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
             footerTotal.numFmt = '"NT$" #,##0';
+            
             for (let i = 1; i <= 5; i++) {
                 footerRow.getCell(i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             }
