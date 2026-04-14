@@ -11,7 +11,6 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-
         :root {
             --neon-cyan: #00f3ff;
             --neon-red: #ff3131;
@@ -117,12 +116,18 @@
         #itemDiscount { border-left: 4px solid var(--neon-yellow) !important; }
         #newStock { border-left: 4px solid var(--neon-red) !important; }
 
+        /* 新增：後臺清單的對應邊框顏色 */
+        .input-border-cyan { border-left: 4px solid var(--neon-cyan) !important; }
+        .input-border-green { border-left: 4px solid var(--neon-green) !important; }
+        .input-border-yellow { border-left: 4px solid var(--neon-yellow) !important; }
+        .input-border-red { border-left: 4px solid var(--neon-red) !important; }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 10px; }
         ::-webkit-scrollbar-corner { background: transparent; }
     </style>
 </head>
-<body class="min-h-screen pb-[280px] md:pb-48 relative">
+<body class="min-h-screen pb-[280px] md:pb-48 relative overscroll-none">
 
 <div id="loginModal" class="fixed inset-0 bg-black/95 z-[2000] hidden items-center justify-center backdrop-blur-md p-4">
     <div class="glass-card p-8 md:p-12 rounded-3xl w-full max-w-md border-cyan-500/50">
@@ -235,7 +240,7 @@
     </div>
 </div>
 
-<div class="fixed bottom-0 left-0 right-0 glass-card border-t border-cyan-500/30 py-4 md:py-6 px-4 md:px-12 z-[900]">
+<div class="fixed bottom-0 left-0 right-0 glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 z-[900]" style="padding-bottom: max(1rem, env(safe-area-inset-bottom)); md:padding-bottom: max(1.5rem, env(safe-area-inset-bottom));">
     <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
         <div class="flex items-center gap-4 md:gap-10">
             <div class="h-10 md:h-12 w-[3px] bg-cyan-500 shadow-[0_0_15px_#00f3ff]"></div>
@@ -268,7 +273,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-    
     const firebaseConfig = {
         apiKey: "AIzaSyBxwPsNRCbYLbrILVevw1zP9JZsZHRjFQw",
         authDomain: "su-computer-studio-225e1.firebaseapp.com",
@@ -278,12 +282,10 @@
         appId: "1:220949673626:web:6c767c20f681edfcc65123",
         measurementId: "G-9YFL980C3F"
     };
-    
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
     const dbRef = doc(db, "su_system", "current_db");
-    
     let categories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
     let hardwareData = [
         { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
@@ -382,14 +384,13 @@
         const status = document.getElementById('authStatus');
         const btnText = document.getElementById('btnText');
         const bottomActions = document.getElementById('bottomActions');
-        
         if (state) {
             panel.classList.remove('hidden');
             userDisplay.classList.add('hidden');
             status.innerText = "最高管理者權限";
             status.className = "text-yellow-400 font-bold";
             btnText.innerText = "登出 資料庫管理介面";
-            bottomActions.style.display = 'none'; // 管理員模式下隱藏匯出與總金額
+            bottomActions.style.display = 'none';
             renderAdminItemList();
         } else {
             panel.classList.add('hidden');
@@ -397,7 +398,7 @@
             status.innerText = "使用者權限";
             status.className = "text-cyan-400 font-bold";
             btnText.innerText = "最高管理者登入";
-            bottomActions.style.display = ''; // 使用者模式下恢復顯示
+            bottomActions.style.display = '';
             renderTable();
         }
     }
@@ -411,7 +412,6 @@
             if(idxB === -1) idxB = 999;
             return idxA - idxB;
         });
-        
         let lastCat = "";
         let rowCounter = 0; 
 
@@ -424,7 +424,7 @@
             const rowClass = (rowCounter % 2 !== 0) ? 'admin-row-odd' : 'admin-row-even';
 
             return `
-            ${isNewGroup ? `<div class="bg-gradient-to-r from-cyan-950/80 via-cyan-800/90 to-cyan-950/80 py-3 md:py-4 px-4 text-center text-base md:text-xl font-black text-cyan-300 border-y border-cyan-400/50 mt-6 md:mt-4 mb-2 shadow-[0_4px_15px_rgba(0,243,255,0.15)] tracking-[0.2em] sticky top-0 z-20 backdrop-blur-xl rounded-xl md:rounded-lg">${item.cat} 區塊</div>` : ''}
+            ${isNewGroup ? `<div class="bg-gradient-to-r from-cyan-950/80 via-cyan-800/90 to-cyan-950/80 py-3 md:py-4 px-4 text-center text-base md:text-xl font-black text-cyan-300 border-y border-cyan-400/50 mt-6 md:mt-4 mb-2 shadow-[0_4px_15px_rgba(0,243,255,0.15)] tracking-[0.2em] sticky md:static top-0 z-20 backdrop-blur-xl rounded-xl md:rounded-lg">${item.cat} 區塊</div>` : ''}
             
             <div class="${rowClass} flex flex-col md:grid md:grid-cols-[100px_1fr_100px_80px_80px_100px_40px] gap-3 p-4 md:p-3 text-sm transition-all rounded-2xl md:rounded-none border border-white/10 md:border-transparent shadow-xl md:shadow-none mb-2 md:mb-0 relative">
                 
@@ -435,21 +435,21 @@
                 
                 <div class="w-full mt-1 md:mt-0">
                     <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block">名稱規格</label>
-                    <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400">
+                    <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400 input-border-cyan">
                 </div>
                 
                 <div class="grid grid-cols-3 gap-3 md:contents mt-1 md:mt-0">
                     <div>
                         <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block text-center">定價</label>
-                        <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-center md:text-right bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400" title="原價">
+                        <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-center md:text-right bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400 input-border-green" title="原價">
                     </div>
                     <div>
                         <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block text-center">折扣(%)</label>
-                        <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-yellow-500 text-center bg-black/60 md:bg-black/40 border-gray-600 focus:border-yellow-400" min="0" max="100" title="折扣幅度(%)">
+                        <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-yellow-500 text-center bg-black/60 md:bg-black/40 border-gray-600 focus:border-yellow-400 input-border-yellow" min="0" max="100" title="折扣幅度(%)">
                     </div>
                     <div>
                         <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block text-center">庫存</label>
-                        <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-center bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400" title="庫存量">
+                        <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-center bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400 input-border-red" title="庫存量">
                     </div>
                 </div>
                 
@@ -640,7 +640,6 @@
 
         let inputQty = parseInt(val) || 1;
         row.stockWarning = false;
-        
         if (row.itemIdx !== "") {
             const item = hardwareData[row.itemIdx];
             if (item && inputQty > item.stock) {
@@ -667,12 +666,9 @@
         if (!targetRow) return;
 
         const sameCatRows = selectedRows.filter(r => r.cat === targetRow.cat);
-        
         if (sameCatRows.length > 1) {
-            // 如果該分類下有多個組件，則直接將其移除
             selectedRows = selectedRows.filter(r => r.id !== id);
         } else {
-            // 如果這是該分類唯一的組件，重置回預設空白狀態（不會把分類區塊清空）
             targetRow.itemIdx = "";
             targetRow.qty = 1;
             targetRow.stockWarning = false;
@@ -723,7 +719,6 @@
         const btnTextEl = document.getElementById('exportBtnText');
         const originalText = btnTextEl.innerText;
         btnTextEl.innerText = '產生中...';
-        
         try {
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('電腦報價單');
@@ -748,14 +743,12 @@
                 { width: 10 }, 
                 { width: 18 }  
             ];
-            
             worksheet.mergeCells('A1:E1');
             const titleCell = worksheet.getCell('A1');
             titleCell.value = 'Su.Computer Studio | 電腦系統硬體報價單';
             titleCell.font = { size: 18, bold: true, color: { argb: 'FF333333' } };
             titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
             titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
-            
             for(let i = 1; i <= 5; i++) {
                 worksheet.getCell(1, i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             }
@@ -766,17 +759,14 @@
             dateCell.value = '建立日期: ' + dateString;
             dateCell.font = { size: 10, color: { argb: 'FF666666' } };
             dateCell.alignment = { vertical: 'middle', horizontal: 'right' };
-            
             const headerRow = worksheet.addRow(['硬體分類', '商品型號', '單價 (折後)', '數量', '小計']);
             headerRow.height = 25;
-            
             headerRow.eachCell((cell) => {
                 cell.font = { bold: true, size: 12, color: { argb: 'FF333333' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             });
-            
             let totalAmount = 0;
             let isEvenRow = true;
 
@@ -808,7 +798,6 @@
                 dataRow.getCell(1).font = { bold: true, color: { argb: 'FF333333' } }; 
                 isEvenRow = !isEvenRow;
             });
-            
             const footerRow = worksheet.addRow(['', '', '', '估價總金額：', totalAmount]);
             footerRow.height = 30;
             worksheet.mergeCells(`A${footerRow.number}:D${footerRow.number}`);
@@ -823,7 +812,6 @@
             footerTotal.font = { bold: true, size: 14, color: { argb: 'FFD93025' } };
             footerTotal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
             footerTotal.numFmt = '"NT$" #,##0';
-            
             for (let i = 1; i <= 5; i++) {
                 footerRow.getCell(i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             }
