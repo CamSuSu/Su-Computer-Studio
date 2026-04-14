@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Su.Computer Studio | 線上報價系統</title>
+    <link rel="icon" href="Su.ico" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-red: #ff3131;
+            --neon-green: #00ff41;
+            --neon-yellow: #facc15;
+            --bg-deep: #06090f;
+            --glass-bg: rgba(10, 15, 25, 0.95);
+        }
+
+        body {
+            background: var(--bg-deep);
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            color: #e2e8f0;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1.1rem;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        body::before {
+            content: " ";
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        .tech-font { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .quote-row { transition: all 0.3s ease; }
+        .quote-row:nth-child(odd) { 
+            background: linear-gradient(90deg, rgba(6, 14, 25, 0.95) 0%, rgba(0, 243, 255, 0.02) 100%);
+            border-left: 3px solid rgba(0, 243, 255, 0.15); 
+        }
+        .quote-row:nth-child(even) { 
+            background: linear-gradient(90deg, rgba(13, 22, 35, 0.95) 0%, rgba(16, 185, 129, 0.02) 100%);
+            border-left: 3px solid rgba(16, 185, 129, 0.15); 
+        }
+        .quote-row:hover { background: rgba(0, 243, 255, 0.05); }
+
+        .admin-row-odd { 
+            background: rgba(20, 90, 140, 0.6);
+            border-left: 4px solid var(--neon-cyan); 
+            box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
+        }
+        .admin-row-even { 
+            background: rgba(20, 15, 35, 0.95);
+            border-left: 4px solid #b148ff; 
+            box-shadow: inset 0 0 10px rgba(177, 72, 255, 0.05);
+        }
+        .admin-row-odd:hover, .admin-row-even:hover {
+            filter: brightness(1.3);
+            border-left-color: var(--neon-yellow);
+        }
+
+        .admin-label {
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            display: block;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 5px rgba(0, 243, 255, 0.5);
+        }
+
+        .price-sale { color: var(--neon-red); text-shadow: 0 0 8px var(--neon-red); font-weight: 900; }
+        .total-glow { text-shadow: 0 0 20px rgba(16, 185, 129, 0.8); }
+
+        input, select {
+            background: rgba(0, 0, 0, 0.6) !important;
+            border: 1px solid rgba(0, 243, 255, 0.3) !important;
+            color: #fff !important;
+            outline: none !important;
+            font-size: 16px !important; /* 確保iOS不會自動放大 */
+        }
+        input:focus, select:focus { border-color: var(--neon-cyan) !important; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
+
+        #newName { border-left: 4px solid var(--neon-cyan) !important; }
+        #newPrice { border-left: 4px solid var(--neon-green) !important; }
+        #itemDiscount { border-left: 4px solid var(--neon-yellow) !important; }
+        #newStock { border-left: 4px solid var(--neon-red) !important; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 10px; }
+        ::-webkit-scrollbar-corner { background: transparent; }
+    </style>
+</head>
+<body class="min-h-screen pb-[280px] md:pb-48 relative">
+
+<div id="loginModal" class="fixed inset-0 bg-black/95 z-[2000] hidden items-center justify-center backdrop-blur-md p-4">
+    <div class="glass-card p-8 md:p-12 rounded-3xl w-full max-w-md border-cyan-500/50">
+        <h2 class="tech-font text-2xl md:text-3xl text-cyan-400 mb-8 md:mb-10 text-center tracking-[0.2em]">管理者權限驗證</h2>
+        <div class="space-y-6">
+            <div>
+                <label class="admin-label">管理者帳號</label>
+                <input type="text" id="loginId" class="w-full p-4 rounded-xl tech-font" placeholder="UID...">
+            </div>
+            <div>
+                <label class="admin-label">安全密碼</label>
+                <input type="password" id="loginPass" class="w-full p-4 rounded-xl tech-font" placeholder="••••••••" onkeydown="if(event.key==='Enter') attemptLogin()">
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                <button onclick="closeLogin()" class="w-full sm:flex-1 py-4 rounded-xl border border-gray-700 text-gray-500 hover:text-white transition-all tech-font">取消</button>
+                <button onclick="attemptLogin()" class="w-full sm:flex-1 py-4 rounded-xl bg-cyan-600 text-black font-black hover:bg-cyan-400 transition-all tech-font shadow-[0_0_20px_rgba(8,145,178,0.4)]">進入系統</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mx-auto px-4 py-8 md:py-10">
+    <header class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 md:mb-16 gap-6">
+        <div class="w-full lg:w-auto">
+            <h1 class="text-4xl sm:text-5xl md:text-7xl font-black tech-font tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-cyan-400 to-blue-600 leading-tight">
+                基隆 Su - <br class="md:hidden"><span class="italic text-cyan-500 text-3xl sm:text-4xl md:text-7xl">Computer Studio</span>
+            </h1>
+            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.2.0</p>
+        </div>
+        
+        <button id="adminToggleBtn" onclick="toggleAdminState()" class="group relative px-8 py-3 md:px-12 md:py-5 bg-transparent overflow-hidden w-full lg:w-auto">
+            <div class="absolute inset-0 border border-cyan-500/50 skew-x-12 group-hover:bg-cyan-500 transition-all duration-300"></div>
+            <span id="btnText" class="relative z-10 tech-font font-bold text-lg md:text-xl text-cyan-400 group-hover:text-black transition-colors">管理員 Su. 登入</span>
+        </button>
+    </header>
+
+    <div id="adminPanel" class="hidden glass-card rounded-2xl p-4 md:p-8 mb-12 border-yellow-500/30">
+        <div class="flex items-center gap-4 mb-6 md:mb-8 border-l-4 border-yellow-500 pl-4">
+            <h3 class="text-yellow-400 font-bold text-xl md:text-2xl tech-font tracking-widest">後臺資料庫管理</h3>
+            <div class="h-[1px] flex-1 bg-gradient-to-r from-yellow-500/50 to-transparent"></div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
+            <div class="space-y-4 w-full overflow-hidden">
+                <label class="admin-label"><i class="fas fa-layer-group mr-2"></i>資料庫清單 (依分類排序)</label>
+                <div class="bg-black/30 p-4 rounded-xl border border-white/5">
+                    <div class="flex flex-wrap gap-2 mb-4" id="catTagContainer"></div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="newCatName" class="p-3 rounded-lg flex-1" placeholder="新分類名稱...">
+                        <button onclick="addCategory()" class="bg-yellow-600 hover:bg-yellow-500 text-black px-6 py-3 sm:py-0 rounded-lg font-bold transition-all">新增分類</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto w-full pb-2">
+                    <div class="min-w-[750px]">
+                        <div class="flex gap-2 px-3 py-2 text-xs font-bold text-cyan-500 uppercase tracking-widest bg-cyan-950/20 rounded items-center">
+                            <div class="w-20 md:w-24 pl-2">分類</div>
+                            <div class="flex-1">名稱規格</div>
+                            <div class="w-20 text-center">定價</div>
+                            <div class="w-16 text-center">折扣(%)</div>
+                            <div class="w-16 text-center">庫存</div>
+                            <div class="w-20 text-center">更新日期</div>
+                            <div class="w-10"></div>
+                        </div>
+                        <div id="adminItemEditList" class="space-y-1 max-h-[600px] overflow-y-auto pr-2 border border-white/5 rounded-lg pb-4 mt-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4 md:space-y-6">
+                <label class="admin-label"><i class="fas fa-plus-square mr-2"></i>新增商品</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black/40 p-5 md:p-6 rounded-2xl border border-white/10 shadow-2xl">
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="text-[10px] text-gray-500 ml-1">選擇分類</label>
+                        <select id="newCat" class="w-full p-4 rounded-xl"></select>
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="text-[10px] text-gray-500 ml-1">硬體名稱</label>
+                        <input type="text" id="newName" class="w-full p-4 rounded-xl" placeholder="例如: Intel i9-14900K">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 ml-1">零售價格</label>
+                        <input type="number" id="newPrice" class="w-full p-4 rounded-xl" placeholder="定價">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 ml-1">折扣幅度 (0%~100%)</label>
+                        <input type="number" id="itemDiscount" class="w-full p-4 rounded-xl text-yellow-500" value="0" min="0" max="100">
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                        <label class="text-[10px] text-gray-500 ml-1">初始庫存量</label>
+                        <input type="number" id="newStock" class="w-full p-4 rounded-xl" placeholder="入庫數量">
+                    </div>
+                    <button onclick="addItem()" class="col-span-1 sm:col-span-2 bg-cyan-600 hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all tech-font mt-2 shadow-lg">商品新增確認</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="userDisplay" class="glass-card rounded-3xl overflow-hidden w-full">
+        <table class="w-full text-left block md:table md:table-fixed md:min-w-[1100px]">
+            <thead class="hidden md:table-header-group">
+                <tr class="bg-cyan-950/60 text-cyan-400 uppercase text-xs tracking-[0.3em] tech-font">
+                    <th class="p-8 w-[15%] border-b border-cyan-900/50">硬體項目</th>
+                    <th class="p-8 w-[35%] border-b border-cyan-900/50">選擇組件型號</th>
+                    <th class="p-8 w-[15%] border-b border-cyan-900/50 text-left">單價</th>
+                    <th class="p-8 w-[15%] border-b border-cyan-900/50 text-left">數量</th>
+                    <th class="p-8 w-[20%] border-b border-cyan-900/50 text-left">小計</th>
+                </tr>
+            </thead>
+            <tbody id="quoteTable" class="block md:table-row-group divide-y md:divide-white/5 divide-transparent"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="fixed bottom-0 left-0 right-0 glass-card border-t border-cyan-500/30 py-4 md:py-6 px-4 md:px-12 z-[900]">
+    <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+        <div class="flex items-center gap-4 md:gap-10">
+            <div class="h-10 md:h-12 w-[3px] bg-cyan-500 shadow-[0_0_15px_#00f3ff]"></div>
+            <div class="mono-font text-[10px] md:text-xs leading-relaxed text-gray-400">
+                <span class="text-cyan-500 opacity-60">當前授權狀態:</span> <span id="authStatus" class="text-cyan-400 font-bold">使用者權限</span><br>
+                <span class="text-cyan-500 opacity-60">最新報價更新日:</span> <span id="updateDate" class="text-white/80"></span>
+            </div>
+        </div>
+        
+        <div class="flex flex-row items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto md:flex-1 border-t border-cyan-900/50 md:border-t-0 pt-4 md:pt-0 mt-2 md:mt-0">
+            <div class="text-left md:text-right">
+                <div class="text-[10px] md:text-xs uppercase tracking-[0.4em] md:tracking-[0.6em] text-cyan-500/50 font-black mb-1 md:mb-2">估價 總金額</div>
+                <div class="text-3xl sm:text-4xl md:text-6xl font-black tech-font text-emerald-400 total-glow flex items-baseline">
+                    <span class="text-base md:text-xl mr-2 md:mr-3 font-light text-emerald-600">NT$</span>
+                    <span id="grandTotal">0</span>
+                </div>
+            </div>
+            <button onclick="exportToExcel()" class="h-10 md:h-12 px-4 md:px-6 rounded-md bg-orange-500 hover:bg-orange-400 text-white font-bold tech-font text-xs md:text-sm shadow-[0_0_10px_rgba(249,115,22,0.4)] transition-all flex items-center gap-2 whitespace-nowrap">
+                <i class="fas fa-file-excel text-base"></i> <span id="exportBtnText" class="hidden sm:inline">輸出報價單</span><span class="sm:hidden">匯出</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<button id="scrollTopBtn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
+    class="fixed bottom-[180px] md:bottom-[140px] right-4 md:right-6 bg-cyan-500 hover:bg-cyan-300 text-black w-10 h-10 md:w-12 md:h-12 rounded-full shadow-[0_0_15px_rgba(0,243,255,0.6)] z-[999] opacity-0 pointer-events-none transition-all duration-300 transform translate-y-4 flex items-center justify-center">
+    <i class="fas fa-arrow-up text-lg md:text-xl font-black"></i>
+</button>
+
+<script>
+    let categories = JSON.parse(localStorage.getItem('hw_cats_v2')) || ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
+    let hardwareData = JSON.parse(localStorage.getItem('hw_db_v2')) || [
+        { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
+        { cat: '顯示卡', name: 'RTX 4070 Ti Super', price: 28500, stock: 5, discount: 5, date: '2024/01/01' } 
+    ];
+    let selectedRows = [];
+    let isAdmin = false;
+
+    // 置頂按鈕邏輯
+    window.addEventListener('scroll', () => {
+        const btn = document.getElementById('scrollTopBtn');
+        if (window.scrollY > 300) {
+            btn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+            btn.classList.add('opacity-100', 'translate-y-0');
+        } else {
+            btn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+            btn.classList.remove('opacity-100', 'translate-y-0');
+        }
+    });
+
+    // 管理功能
+    function toggleAdminState() {
+        document.getElementById('loginId').value = '';
+        document.getElementById('loginPass').value = '';
+
+        if (isAdmin) {
+            isAdmin = false;
+            applyAdminUI(false);
+        } else {
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('loginId').focus();
+        }
+    }
+
+    function closeLogin() { 
+        document.getElementById('loginId').value = '';
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginModal').style.display = 'none'; 
+    }
+
+    function attemptLogin() {
+        const id = document.getElementById('loginId').value;
+        const pass = document.getElementById('loginPass').value;
+        if (id === "koralba" && pass === "suting") {
+            isAdmin = true;
+            applyAdminUI(true);
+            closeLogin();
+        } else {
+            alert("驗證失敗");
+            document.getElementById('loginPass').value = '';
+            document.getElementById('loginPass').focus();
+        }
+    }
+
+    function applyAdminUI(state) {
+        const panel = document.getElementById('adminPanel');
+        const userDisplay = document.getElementById('userDisplay');
+        const status = document.getElementById('authStatus');
+        const btnText = document.getElementById('btnText');
+        
+        if (state) {
+            panel.classList.remove('hidden');
+            userDisplay.classList.add('hidden');
+            status.innerText = "最高管理者權限";
+            status.className = "text-yellow-400 font-bold";
+            btnText.innerText = "登出 資料庫管理介面";
+            renderAdminItemList();
+        } else {
+            panel.classList.add('hidden');
+            userDisplay.classList.remove('hidden');
+            status.innerText = "使用者權限";
+            status.className = "text-cyan-400 font-bold";
+            btnText.innerText = "最高管理者登入";
+            renderTable();
+        }
+    }
+
+    function renderAdminItemList() {
+        const container = document.getElementById('adminItemEditList');
+        const sortedDB = [...hardwareData].sort((a, b) => {
+            let idxA = categories.indexOf(a.cat);
+            let idxB = categories.indexOf(b.cat);
+            if(idxA === -1) idxA = 999;
+            if(idxB === -1) idxB = 999;
+            return idxA - idxB;
+        });
+        
+        let lastCat = "";
+        let rowCounter = 0; 
+
+        container.innerHTML = sortedDB.map((item) => {
+            const originalIdx = hardwareData.indexOf(item);
+            const isNewGroup = item.cat !== lastCat;
+            lastCat = item.cat;
+            
+            rowCounter++;
+            const rowClass = (rowCounter % 2 !== 0) ? 'admin-row-odd' : 'admin-row-even';
+
+            return `
+            ${isNewGroup ? `<div class="bg-cyan-500/20 py-2 px-4 text-[11px] font-black text-cyan-300 border-y border-cyan-500/40 mt-4 shadow-[0_0_10px_rgba(0,243,255,0.1)] tracking-widest">${item.cat} 分類區塊</div>` : ''}
+            <div class="${rowClass} flex items-center gap-2 p-3 text-sm transition-all min-w-max">
+                <div class="w-20 md:w-24 text-center">
+                    <span class="bg-black/50 text-cyan-400 px-2 py-1 rounded text-[10px] border border-cyan-500/30">${item.cat}</span>
+                </div>
+                <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-48 md:flex-1 p-2 rounded border-transparent">
+                <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-20 p-2 rounded text-right" title="原價">
+                <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-16 p-2 rounded text-yellow-500 text-center" min="0" max="100" title="折扣幅度(%)">
+                <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-16 p-2 rounded text-center" title="庫存量">
+                <div class="w-20 text-center text-[10px] text-gray-400 mono-font">${item.date || '未紀錄'}</div>
+                <button onclick="removeDBItem(${originalIdx})" class="text-red-500/50 hover:text-red-500 w-10 text-right pr-2 transition-colors"><i class="fas fa-trash-alt"></i></button>
+            </div>`;
+        }).join('');
+    }
+
+    function addItem() {
+        const cat = document.getElementById('newCat').value;
+        const name = document.getElementById('newName').value.trim();
+        const price = Number(document.getElementById('newPrice').value);
+        const discount = Number(document.getElementById('itemDiscount').value); 
+        const stock = Number(document.getElementById('newStock').value);
+        const today = new Date().toLocaleDateString('zh-TW');
+
+        if (!name) return alert("請輸入硬體名稱");
+        const existingIdx = hardwareData.findIndex(h => h.cat === cat && h.name === name);
+        if (existingIdx !== -1) {
+            alert(`⚠️ 錯誤：資料庫中已存在同分類的商品「${name}」，請直接在列表中修改。`);
+            return;
+        }
+
+        hardwareData.push({ cat, name, price, discount, stock, date: today });
+        saveAndRefreshAdmin();
+        ['newName', 'newPrice', 'newStock'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('itemDiscount').value = '0';
+    }
+
+    function saveAndRefreshAdmin() {
+        localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
+        renderAdminItemList();
+    }
+
+    function editDB(idx, field, val) {
+        hardwareData[idx][field] = field === 'name' ? val : Number(val) || 0;
+        hardwareData[idx].date = new Date().toLocaleDateString('zh-TW'); 
+        localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
+    }
+
+    function removeDBItem(idx) {
+        if (confirm("確定刪除此資料？此操作無法還原。")) {
+            hardwareData.splice(idx, 1);
+            localStorage.setItem('hw_db_v2', JSON.stringify(hardwareData));
+            
+            selectedRows.forEach(row => {
+                if (String(row.itemIdx) === String(idx)) {
+                    row.itemIdx = ""; 
+                } else if (row.itemIdx !== "" && Number(row.itemIdx) > idx) {
+                    row.itemIdx = Number(row.itemIdx) - 1; 
+                }
+            });
+            renderAdminItemList();
+        }
+    }
+
+    // --- 使用者表格功能 (響應式修改) ---
+    function renderTable() {
+        const table = document.getElementById('quoteTable');
+        document.getElementById('newCat').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        document.getElementById('catTagContainer').innerHTML = categories.map((c, i) => `
+            <div class="flex items-center gap-2 bg-cyan-950/40 border border-cyan-500/20 px-3 py-1 rounded">
+                <span class="text-xs tech-font text-cyan-300">${c}</span>
+                <i class="fas fa-times-circle text-[10px] cursor-pointer hover:text-red-500" onclick="removeCategory(${i})"></i>
+            </div>`).join('');
+            
+        table.innerHTML = categories.map(cat => {
+            const catRows = selectedRows.filter(r => r.cat === cat);
+            const hardwareOptions = hardwareData
+                .filter(h => h.cat === cat)
+                .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+          
+            let selectionHtml = catRows.map((row, index) => {
+                const item = row.itemIdx !== "" ? hardwareData[row.itemIdx] : null;
+                const finalPrice = item ? Math.round(item.price * (1 - (item.discount / 100))) : 0;
+                const rowBgClass = index % 2 === 0 ? "bg-black/20" : "bg-cyan-900/20";
+
+                return `
+                <div class="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 mb-4 group/row ${rowBgClass} p-4 md:p-2 rounded-xl relative border border-white/5 md:border-none">
+                    
+                    <div class="w-full md:w-[41%] pr-8 md:pr-0">
+                        <select onchange="updateSelection(${row.id}, this.value)" class="w-full p-3 md:p-4 rounded-xl mono-font text-[14px] md:text-[15px] tracking-wide bg-gray-900 border-gray-700 focus:border-cyan-500">
+                            <option value="">-- 請選擇 ${cat} 組件 --</option>
+                            ${hardwareOptions.map(h => {
+                                const globalIdx = hardwareData.indexOf(h);
+                                return `<option value="${globalIdx}" ${String(row.itemIdx) === String(globalIdx) ? 'selected' : ''}>▸ ${h.name} (庫存:${h.stock})</option>`;
+                            }).join('')}
+                        </select>
+                    </div>
+
+                    <div class="w-full md:w-[18%] md:pl-4 tech-font flex justify-between md:block items-center mt-2 md:mt-0">
+                        <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">單價</span>
+                        <div class="text-right md:text-left">
+                            ${item ? (item.discount > 0 ? `<div class="text-[10px] md:text-xs line-through opacity-40">$${item.price.toLocaleString()}</div><div class="price-sale text-lg md:text-xl">$${finalPrice.toLocaleString()}</div>` : `<span class="text-cyan-400 text-lg md:text-xl">$${item.price.toLocaleString()}</span>`) : '<span class="text-gray-600">---</span>'}
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-[18%] md:pl-4 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start border-t border-dashed border-white/10 md:border-none pt-3 md:pt-0">
+                        <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">數量</span>
+                        <div class="flex flex-col items-end md:items-start">
+                            <input type="number" value="${row.qty}" min="1" onchange="updateQty(${row.id}, this.value)" class="w-24 md:w-32 p-2 md:p-4 rounded-xl text-center font-black bg-gray-900 border-gray-700 ${row.stockWarning ? 'border-red-500 shadow-[0_0_10px_rgba(255,49,49,0.5)] text-red-400' : ''}">
+                            ${item ? (row.stockWarning ? 
+                                    `<div class="mt-1 text-red-500 text-[10px] md:text-[12px] font-bold"><i class="fas fa-exclamation-triangle"></i>庫存不足 剩餘: ${item.stock}</div>` 
+                                    : `<div class="mt-1 text-cyan-600/70 text-[10px] md:text-[12px]"><i class="fas fa-box"></i> 庫存量: ${item.stock}</div>`
+                                ) : ''
+                            }
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-[23%] md:pl-4 text-emerald-400 text-xl md:text-2xl font-black tech-font flex justify-between md:block items-center border-t border-white/5 md:border-none pt-3 md:pt-0 mt-1 md:mt-0">
+                        <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">小計金額</span>
+                        <span>$ ${(finalPrice * row.qty).toLocaleString()}</span>
+                    </div>
+
+                    <button onclick="removeRow(${row.id})" class="absolute top-3 right-3 md:static text-red-900/60 hover:text-red-500 p-2 transition-colors bg-red-950/20 rounded-full md:bg-transparent md:rounded-none">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>`;
+            }).join('');
+
+            return `
+            <tr class="quote-row flex flex-col md:table-row border-b-4 border-cyan-900/30 md:border-b md:border-cyan-900/50 mb-4 md:mb-0 pb-4 md:pb-0">
+                <td class="p-4 md:p-8 align-top block md:table-cell bg-cyan-950/10 md:bg-transparent">
+                    <div class="tech-font font-bold text-white text-lg md:text-xl border-l-4 border-cyan-500 pl-3 md:pl-4 shadow-[inset_10px_0_20px_-10px_rgba(0,243,255,0.1)] md:shadow-none">${cat}</div>
+                </td>
+                <td class="px-2 py-4 md:p-8 block md:table-cell" colspan="4">
+                    ${selectionHtml}
+                    <button onclick="addRow('${cat}')" class="text-xs tech-font border border-cyan-500/30 px-6 py-3 md:py-2 rounded-xl hover:bg-cyan-500 hover:text-black transition-all mt-2 w-full md:w-auto flex justify-center items-center">
+                        <i class="fas fa-plus mr-2"></i>新增 ${cat} 項目
+                    </button>
+                 </td>
+            </tr>`;
+        }).join('');
+
+        calculateGrandTotal();
+    }
+
+    function addRow(cat) {
+        const hasEmptyRow = selectedRows.find(r => r.cat === cat && r.itemIdx === "");
+        if (hasEmptyRow) {
+            alert("⚠️ 提示：該分類已有待選項目，請先選擇商品型號。");
+            return;
+        }
+        selectedRows.push({ id: Date.now() + Math.random(), cat: cat, itemIdx: "", qty: 1, stockWarning: false });
+        renderTable();
+    }
+
+    function updateSelection(rowId, newItemIdx) {
+        const currentRow = selectedRows.find(r => r.id === rowId);
+        currentRow.stockWarning = false;
+
+        if (newItemIdx === "") {
+            currentRow.itemIdx = "";
+            renderTable();
+            return;
+        }
+        
+        const isDuplicate = selectedRows.some(r => r.id !== rowId && r.cat === currentRow.cat && String(r.itemIdx) === String(newItemIdx));
+        if (isDuplicate) {
+            alert("⚠️ 重複選擇：此報價單已包含該商品，請直接調整現有數量。");
+            renderTable(); 
+            return;
+        }
+
+        currentRow.itemIdx = newItemIdx;
+        currentRow.qty = 1;
+        renderTable();
+    }
+
+    function updateQty(id, val) {
+        const row = selectedRows.find(r => r.id === id);
+        if (!row) return;
+
+        let inputQty = parseInt(val) || 1;
+        row.stockWarning = false;
+        
+        if (row.itemIdx !== "") {
+            const item = hardwareData[row.itemIdx];
+            if (item && inputQty > item.stock) {
+                inputQty = item.stock; 
+                row.stockWarning = true; 
+            }
+        }
+        
+        row.qty = Math.max(1, inputQty);
+        renderTable();
+    }
+
+    function removeRow(id) {
+        selectedRows = selectedRows.filter(r => r.id !== id);
+        renderTable();
+    }
+
+    function calculateGrandTotal() {
+        let total = 0;
+        selectedRows.forEach(row => {
+            if(row.itemIdx !== "") {
+                const item = hardwareData[row.itemIdx];
+                if (item) total += Math.round(item.price * (1 - (item.discount / 100))) * row.qty;
+            }
+        });
+        document.getElementById('grandTotal').innerText = total.toLocaleString();
+    }
+
+    function addCategory() {
+        const name = document.getElementById('newCatName').value.trim();
+        if (name && !categories.includes(name)) {
+            categories.push(name);
+            localStorage.setItem('hw_cats_v2', JSON.stringify(categories));
+            selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1 });
+            renderTable();
+            document.getElementById('newCatName').value = '';
+        }
+    }
+
+    function removeCategory(index) {
+        if (confirm(`確定刪除「${categories[index]}」分類？`)) {
+            categories.splice(index, 1);
+            localStorage.setItem('hw_cats_v2', JSON.stringify(categories));
+            renderTable();
+        }
+    }
+
+    function updateSystemDate() {
+        const now = new Date();
+        document.getElementById('updateDate').innerText = now.toLocaleDateString('zh-TW');
+    }
+
+    // --- 匯出 原生 .xlsx 報價單功能 ---
+    async function exportToExcel() {
+        const validRows = selectedRows.filter(r => r.itemIdx !== "");
+        if (validRows.length === 0) {
+            alert("⚠️ 請至少選擇一項商品後再匯出報價單！");
+            return;
+        }
+
+        const btnTextEl = document.getElementById('exportBtnText');
+        const originalText = btnTextEl.innerText;
+        btnTextEl.innerText = '產生中...';
+        
+        try {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('電腦報價單');
+
+            worksheet.pageSetup = {
+                paperSize: 9, 
+                orientation: 'portrait',
+                fitToPage: true,
+                fitToWidth: 1,
+                fitToHeight: 1,
+                margins: {
+                    left: 0.25, right: 0.25,
+                    top: 0.75, bottom: 0.75,
+                    header: 0.3, footer: 0.3
+                }
+            };
+
+            worksheet.columns = [
+                { width: 16 }, 
+                { width: 45 }, 
+                { width: 15 }, 
+                { width: 10 }, 
+                { width: 18 }  
+            ];
+
+            worksheet.mergeCells('A1:E1');
+            const titleCell = worksheet.getCell('A1');
+            titleCell.value = 'Su.Computer Studio | 電腦系統硬體報價單';
+            titleCell.font = { size: 18, bold: true, color: { argb: 'FF333333' } };
+            titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8F9FA' } };
+            for(let i = 1; i <= 5; i++) {
+                worksheet.getCell(1, i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            }
+
+            let dateString = document.getElementById('updateDate').innerText;
+            worksheet.mergeCells('A2:E2');
+            const dateCell = worksheet.getCell('A2');
+            dateCell.value = '建立日期: ' + dateString;
+            dateCell.font = { size: 10, color: { argb: 'FF666666' } };
+            dateCell.alignment = { vertical: 'middle', horizontal: 'right' };
+
+            const headerRow = worksheet.addRow(['硬體分類', '商品型號', '單價 (折後)', '數量', '小計']);
+            headerRow.height = 25;
+            headerRow.eachCell((cell) => {
+                cell.font = { bold: true, size: 12, color: { argb: 'FF333333' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            });
+
+            let totalAmount = 0;
+            let isEvenRow = true;
+
+            validRows.forEach(row => {
+                const item = hardwareData[row.itemIdx];
+                const finalPrice = Math.round(item.price * (1 - (item.discount / 100)));
+                const subtotal = finalPrice * row.qty;
+                totalAmount += subtotal;
+
+                const dataRow = worksheet.addRow([ row.cat, item.name, finalPrice, row.qty, subtotal ]);
+                dataRow.height = 20;
+
+                const bgColor = isEvenRow ? 'FFFFFFFF' : 'FFF8F9FA';
+
+                dataRow.eachCell((cell, colNum) => {
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+                    cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+                    cell.font = { color: { argb: 'FF333333' } };
+                    
+                    if (colNum === 1 || colNum === 4) {
+                        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                    } else if (colNum === 2) {
+                        cell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+                    } else {
+                        cell.alignment = { vertical: 'middle', horizontal: 'right' };
+                        cell.numFmt = '"NT$" #,##0';
+                    }
+                });
+                
+                dataRow.getCell(1).font = { bold: true, color: { argb: 'FF333333' } }; 
+                isEvenRow = !isEvenRow;
+            });
+
+            const footerRow = worksheet.addRow(['', '', '', '估價總金額：', totalAmount]);
+            footerRow.height = 30;
+            worksheet.mergeCells(`A${footerRow.number}:D${footerRow.number}`);
+            
+            const footerLabel = footerRow.getCell(1);
+            footerLabel.alignment = { vertical: 'middle', horizontal: 'right' };
+            footerLabel.font = { bold: true, size: 12, color: { argb: 'FF333333' } };
+            footerLabel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
+            
+            const footerTotal = footerRow.getCell(5);
+            footerTotal.alignment = { vertical: 'middle', horizontal: 'right' };
+            footerTotal.font = { bold: true, size: 14, color: { argb: 'FFD93025' } };
+            footerTotal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
+            footerTotal.numFmt = '"NT$" #,##0';
+
+            for (let i = 1; i <= 5; i++) {
+                footerRow.getCell(i).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            }
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Su_Computer_報價單_${dateString.replace(/\//g, '')}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error("報價單生成錯誤: ", error);
+            alert("抱歉，輸出 Excel 發生異常。");
+        } finally {
+            btnTextEl.innerText = originalText;
+        }
+    }
+
+    updateSystemDate();
+    categories.forEach(c => selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false }));
+    renderTable();
+</script>
+</body>
+</html>
