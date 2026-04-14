@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Su.Computer Studio | 線上報價系統</title>
     <link rel="icon" href="images/Su.ico" type="image/x-icon">
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://www.gstatic.com">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js" defer></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-        
         :root {
             --neon-cyan: #00f3ff;
             --neon-red: #ff3131;
@@ -110,6 +117,13 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 10px; }
         ::-webkit-scrollbar-corner { background: transparent; }
+
+        /* 移動版進入管理員模式時，隱藏底部列後的 padding 修正 */
+        @media (max-width: 767px) {
+            body.admin-mobile-pb {
+                padding-bottom: 2rem !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-[100dvh] pb-[280px] md:pb-48 relative overscroll-none">
@@ -225,7 +239,7 @@
     </div>
 </div>
 
-<div class="fixed left-0 right-0 w-full glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 z-[9999]" 
+<div id="bottomBar" class="fixed left-0 right-0 w-full glass-card border-t border-cyan-500/30 pt-4 md:pt-6 px-4 md:px-12 z-[9999]" 
      style="position: fixed !important; bottom: 0 !important; padding-bottom: calc(1rem + env(safe-area-inset-bottom));">
     <div class="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
         <div class="flex items-center gap-4 md:gap-10">
@@ -423,7 +437,7 @@
     window.attemptLogin = function() {
         const id = document.getElementById('loginId').value;
         const pass = document.getElementById('loginPass').value;
-        if (id === "koralba" && pass === "suting") {
+        if (id === "Koralba" && pass === "suting") {
             isAdmin = true;
             applyAdminUI(true);
             closeLogin();
@@ -442,6 +456,8 @@
         const status = document.getElementById('authStatus');
         const btnText = document.getElementById('btnText');
         const bottomActions = document.getElementById('bottomActions');
+        const bottomBar = document.getElementById('bottomBar');
+        const body = document.body;
         
         if (state) {
             panel.classList.remove('hidden');
@@ -450,6 +466,11 @@
             status.className = "text-yellow-400 font-bold";
             btnText.innerText = "登出 資料庫管理介面";
             bottomActions.style.display = 'none';
+            
+            // 行動裝置進入管理員介面時，完全隱藏下方列，並自動修復下方留白
+            bottomBar.classList.add('hidden', 'md:block');
+            body.classList.add('admin-mobile-pb');
+            
             renderAdminItemList();
         } else {
             panel.classList.add('hidden');
@@ -458,6 +479,11 @@
             status.className = "text-cyan-400 font-bold";
             btnText.innerText = "最高管理者登入";
             bottomActions.style.display = '';
+            
+            // 恢復顯示
+            bottomBar.classList.remove('hidden', 'md:block');
+            body.classList.remove('admin-mobile-pb');
+            
             renderTable();
         }
     }
