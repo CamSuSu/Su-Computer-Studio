@@ -11,7 +11,7 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-        
+
         :root {
             --neon-cyan: #00f3ff;
             --neon-red: #ff3131;
@@ -105,15 +105,12 @@
             box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); 
         }
 
-        /* 隱藏原生數字上下箭頭以利自訂按鈕 */
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
+        input[type="number"] { -moz-appearance: textfield; }
 
         #newName { border-left: 4px solid var(--neon-cyan) !important; }
         #newPrice { border-left: 4px solid var(--neon-green) !important; }
@@ -153,12 +150,12 @@
             <h1 class="text-4xl sm:text-5xl md:text-7xl font-black tech-font tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-cyan-400 to-blue-600 leading-tight">
                 基隆 Su - <br class="md:hidden"><span class="italic text-cyan-500 text-3xl sm:text-4xl md:text-7xl">Computer Studio</span>
             </h1>
-            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.3.0</p>
+            <p class="mono-font text-cyan-500/60 text-[10px] md:text-xs mt-3 tracking-[0.3em] md:tracking-[0.5em] uppercase font-bold">Su Computer Studio 線上報價系統 // Ver 6.3.1</p>
         </div>
         
         <button id="adminToggleBtn" onclick="toggleAdminState()" class="group relative px-8 py-3 md:px-12 md:py-5 bg-transparent overflow-hidden w-full lg:w-auto">
             <div class="absolute inset-0 border border-cyan-500/50 skew-x-12 group-hover:bg-cyan-500 transition-all duration-300"></div>
-            <span id="btnText" class="relative z-10 tech-font font-bold text-lg md:text-xl text-cyan-400 group-hover:text-black transition-colors">管理員 Su. 登入</span>
+            <span id="btnText" class="relative z-10 tech-font font-bold text-lg md:text-xl text-cyan-400 group-hover:text-black transition-colors">管理員 Su.登入</span>
         </button>
     </header>
 
@@ -189,7 +186,7 @@
                         <div class="text-center">更新日期</div>
                         <div></div>
                     </div>
-                    <div id="adminItemEditList" class="space-y-4 md:space-y-1 max-h-[700px] overflow-y-auto pr-1 md:pr-2 border border-white/5 md:border-t-0 rounded-xl md:rounded-t-none pb-4 md:mt-0 p-2 md:p-2 bg-black/20"></div>
+                    <div id="adminItemEditList" class="flex flex-col gap-4 md:gap-1 max-h-[700px] overflow-y-auto pr-1 md:pr-2 border border-white/5 md:border-t-0 rounded-xl md:rounded-t-none pb-4 md:mt-0 p-2 md:p-2 bg-black/20"></div>
                 </div>
             </div>
 
@@ -271,7 +268,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-
+    
     const firebaseConfig = {
         apiKey: "AIzaSyBxwPsNRCbYLbrILVevw1zP9JZsZHRjFQw",
         authDomain: "su-computer-studio-225e1.firebaseapp.com",
@@ -281,12 +278,12 @@
         appId: "1:220949673626:web:6c767c20f681edfcc65123",
         measurementId: "G-9YFL980C3F"
     };
-
+    
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
     const dbRef = doc(db, "su_system", "current_db");
-
+    
     let categories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
     let hardwareData = [
         { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
@@ -295,7 +292,6 @@
     let selectedRows = [];
     let isAdmin = false;
 
-    // --- Firebase 即時同步 ---
     onSnapshot(dbRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
@@ -305,7 +301,6 @@
             if(selectedRows.length === 0) {
                 initializeSelectedRows();
             } else {
-                // 核心修正：確保當有新分類被載入時，畫面上會自動初始化一列對應的空選單（解決不出現下拉選單的問題）
                 categories.forEach(c => {
                     if (!selectedRows.some(r => r.cat === c)) {
                         selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false });
@@ -316,7 +311,7 @@
             if (isAdmin) renderAdminItemList();
             renderTable();
         } else {
-            saveToFirebase(); // 初始化資料庫
+            saveToFirebase(); 
         }
     });
 
@@ -386,6 +381,7 @@
         const userDisplay = document.getElementById('userDisplay');
         const status = document.getElementById('authStatus');
         const btnText = document.getElementById('btnText');
+        
         if (state) {
             panel.classList.remove('hidden');
             userDisplay.classList.add('hidden');
@@ -403,7 +399,7 @@
         }
     }
 
-    // 核心修正：管理清單全面改為響應式 Grid 結構，確保手機版與電腦版皆完美對齊
+    // --- 核心修正：優化行動裝置排版，運用 md:contents 無縫銜接桌面網格，並修復按鈕位置 ---
     function renderAdminItemList() {
         const container = document.getElementById('adminItemEditList');
         const sortedDB = [...hardwareData].sort((a, b) => {
@@ -426,42 +422,45 @@
             const rowClass = (rowCounter % 2 !== 0) ? 'admin-row-odd' : 'admin-row-even';
 
             return `
-            ${isNewGroup ? `<div class="bg-cyan-500/20 py-2 px-4 text-[12px] md:text-[11px] font-black text-cyan-300 border-y border-cyan-500/40 mt-6 md:mt-2 shadow-[0_0_10px_rgba(0,243,255,0.1)] tracking-widest sticky top-0 z-10 backdrop-blur-md">${item.cat} 分類區塊</div>` : ''}
+            ${isNewGroup ? `<div class="bg-gradient-to-r from-cyan-950/80 via-cyan-800/90 to-cyan-950/80 py-3 md:py-4 px-4 text-center text-base md:text-xl font-black text-cyan-300 border-y border-cyan-400/50 mt-6 md:mt-4 mb-2 shadow-[0_4px_15px_rgba(0,243,255,0.15)] tracking-[0.2em] sticky top-0 z-20 backdrop-blur-xl rounded-xl md:rounded-lg">${item.cat} 區塊</div>` : ''}
             
-            <div class="${rowClass} grid grid-cols-2 md:grid-cols-[100px_1fr_100px_80px_80px_100px_40px] gap-3 items-center p-4 md:p-3 text-sm transition-all rounded-xl md:rounded-none border border-white/5 md:border-transparent relative shadow-lg md:shadow-none">
+            <div class="${rowClass} flex flex-col md:grid md:grid-cols-[100px_1fr_100px_80px_80px_100px_40px] gap-3 p-4 md:p-3 text-sm transition-all rounded-2xl md:rounded-none border border-white/10 md:border-transparent shadow-xl md:shadow-none mb-2 md:mb-0 relative">
                 
-                <div class="col-span-2 md:col-span-1 flex justify-between md:justify-center items-center">
-                    <span class="md:hidden text-[11px] text-gray-500 font-bold">分類標籤</span>
-                    <span class="bg-black/50 text-cyan-400 px-3 md:px-2 py-1 rounded text-[12px] md:text-[10px] border border-cyan-500/30 shadow-[0_0_8px_rgba(0,243,255,0.2)]">${item.cat}</span>
+                <div class="flex justify-between md:justify-center items-center pb-3 md:pb-0 border-b border-white/10 md:border-none">
+                    <span class="md:hidden text-[12px] text-cyan-500 font-bold tracking-widest"><i class="fas fa-tag mr-2"></i>商品分類</span>
+                    <span class="bg-black/60 text-cyan-400 px-3 md:px-2 py-1.5 md:py-1 rounded-md text-[13px] md:text-[10px] border border-cyan-500/30 shadow-[0_0_8px_rgba(0,243,255,0.2)]">${item.cat}</span>
                 </div>
                 
-                <div class="col-span-2 md:col-span-1">
-                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">名稱規格</label>
-                    <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded bg-black/60 md:bg-black/40 border-gray-700">
+                <div class="w-full mt-1 md:mt-0">
+                    <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block">名稱規格</label>
+                    <input type="text" value="${item.name}" onchange="editDB(${originalIdx}, 'name', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400">
                 </div>
                 
-                <div>
-                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">定價</label>
-                    <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded text-right bg-black/60 md:bg-black/40 border-gray-700" title="原價">
+                <div class="grid grid-cols-3 gap-3 md:contents mt-1 md:mt-0">
+                    <div>
+                        <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block text-center">定價</label>
+                        <input type="number" value="${item.price}" onchange="editDB(${originalIdx}, 'price', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-center md:text-right bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400" title="原價">
+                    </div>
+                    <div>
+                        <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block text-center">折扣(%)</label>
+                        <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-yellow-500 text-center bg-black/60 md:bg-black/40 border-gray-600 focus:border-yellow-400" min="0" max="100" title="折扣幅度(%)">
+                    </div>
+                    <div>
+                        <label class="md:hidden text-[11px] text-gray-400 ml-1 mb-1.5 block text-center">庫存</label>
+                        <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-full p-3 md:p-2 rounded-xl md:rounded text-center bg-black/60 md:bg-black/40 border-gray-600 focus:border-cyan-400" title="庫存量">
+                    </div>
                 </div>
                 
-                <div>
-                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">折扣(%)</label>
-                    <input type="number" value="${item.discount}" onchange="editDB(${originalIdx}, 'discount', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded text-yellow-500 text-center bg-black/60 md:bg-black/40 border-gray-700" min="0" max="100" title="折扣幅度(%)">
-                </div>
-                
-                <div>
-                    <label class="md:hidden text-[10px] text-gray-500 ml-1 mb-1 block">庫存</label>
-                    <input type="number" value="${item.stock}" onchange="editDB(${originalIdx}, 'stock', this.value)" class="w-full p-3 md:p-2 rounded-lg md:rounded text-center bg-black/60 md:bg-black/40 border-gray-700" title="庫存量">
-                </div>
-                
-                <div class="col-span-1 md:col-span-1 flex flex-col justify-center text-center">
-                    <label class="md:hidden text-[10px] text-gray-500 mb-1 block">更新日期</label>
-                    <div class="text-[12px] md:text-[10px] text-gray-400 mono-font">${item.date || '未紀錄'}</div>
-                </div>
-                
-                <div class="absolute top-3 right-3 md:relative md:top-0 md:right-0 md:col-span-1 text-right">
-                    <button onclick="removeDBItem(${originalIdx})" class="text-red-500/50 hover:text-red-500 w-10 h-10 md:w-full text-center transition-colors bg-red-950/20 md:bg-transparent rounded-full md:rounded-none"><i class="fas fa-trash-alt"></i></button>
+                <div class="flex justify-between items-center mt-2 pt-3 md:mt-0 md:pt-0 border-t border-white/10 md:border-none md:contents">
+                    <div class="flex flex-col justify-center text-left md:text-center w-1/2 md:w-auto">
+                        <label class="md:hidden text-[11px] text-gray-500 mb-1 block">更新日期</label>
+                        <div class="text-[13px] md:text-[10px] text-gray-400 mono-font">${item.date || '未紀錄'}</div>
+                    </div>
+                    <div class="flex justify-end md:justify-center items-center w-1/2 md:w-auto">
+                        <button type="button" onclick="removeDBItem(${originalIdx})" class="relative z-10 text-red-400 hover:text-white bg-red-950/50 md:bg-transparent hover:bg-red-600 px-5 py-3 md:px-0 md:py-0 rounded-xl md:rounded-none flex items-center justify-center gap-2 transition-all border border-red-900/50 md:border-transparent active:scale-95 shadow-lg md:shadow-none">
+                            <i class="fas fa-trash-alt text-lg md:text-base"></i> <span class="md:hidden text-sm tracking-widest font-bold">刪除商品</span>
+                        </button>
+                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -549,8 +548,7 @@
                     <div class="w-full md:w-[18%] md:pl-4 tech-font flex justify-between md:block items-center mt-2 md:mt-0">
                         <span class="md:hidden text-xs text-cyan-500/70 font-bold uppercase tracking-wider">單價</span>
                         <div class="text-right md:text-left">
-                            ${item ?
-                            (item.discount > 0 ? `<div class="text-[10px] md:text-xs line-through opacity-40">$${item.price.toLocaleString()}</div><div class="price-sale text-lg md:text-xl">$${finalPrice.toLocaleString()}</div>` : `<span class="text-cyan-400 text-lg md:text-xl">$${item.price.toLocaleString()}</span>`) : '<span class="text-gray-600">---</span>'}
+                            ${item ? (item.discount > 0 ? `<div class="text-[10px] md:text-xs line-through opacity-40">$${item.price.toLocaleString()}</div><div class="price-sale text-lg md:text-xl">$${finalPrice.toLocaleString()}</div>` : `<span class="text-cyan-400 text-lg md:text-xl">$${item.price.toLocaleString()}</span>`) : '<span class="text-gray-600">---</span>'}
                         </div>
                     </div>
 
@@ -646,7 +644,6 @@
         renderTable();
     };
 
-    // 用來支援按鈕加減數量的功能
     window.changeQty = function(id, delta) {
         const row = selectedRows.find(r => r.id === id);
         if (row) {
@@ -676,7 +673,6 @@
         const name = document.getElementById('newCatName').value.trim();
         if (name && !categories.includes(name)) {
             categories.push(name);
-            // 本機推入，讓存檔前 selectedRows 擁有預設值
             selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1, stockWarning: false });
             saveToFirebase();
             document.getElementById('newCatName').value = '';
@@ -751,6 +747,7 @@
             
             const headerRow = worksheet.addRow(['硬體分類', '商品型號', '單價 (折後)', '數量', '小計']);
             headerRow.height = 25;
+            
             headerRow.eachCell((cell) => {
                 cell.font = { bold: true, size: 12, color: { argb: 'FF333333' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE9ECEF' } };
