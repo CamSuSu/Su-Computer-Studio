@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Su.Computer Studio | 線上報價系統</title>
-    <link rel="icon" href="Su.ico" type="image/x-icon">
+    <link rel="icon" href="images/Su.ico" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -272,18 +272,17 @@
         projectId: "su-computer-studio-225e1",
         storageBucket: "su-computer-studio-225e1.firebasestorage.app",
         messagingSenderId: "220949673626",
-        appId: "1:220949673626:web:d59dd6f8be2e7649c65123",
-        measurementId: "G-G5J6B30S1Y"
+        appId: "1:220949673626:web:6c767c20f681edfcc65123",
+        measurementId: "G-9YFL980C3F"
     };
 
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
     
-    // 定義 Firestore 資料庫參考 (集合: su_system, 文件: current_db)
+    // 定義 Firestore 資料庫參考
     const dbRef = doc(db, "su_system", "current_db");
 
-    // 初始預設資料 (若資料庫全空時使用)
     let categories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
     let hardwareData = [
         { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
@@ -292,41 +291,33 @@
     let selectedRows = [];
     let isAdmin = false;
 
-    // --- Firebase 同步邏輯 ---
-    // 監聽 Firebase 資料變化 (即時同步)
+    // --- Firebase 即時同步 ---
     onSnapshot(dbRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             categories = data.categories || categories;
             hardwareData = data.hardwareData || hardwareData;
             
-            // 確保選取列對應的分類仍然存在
             if(selectedRows.length === 0) {
                 initializeSelectedRows();
             }
 
-            // 更新畫面
             if (isAdmin) renderAdminItemList();
             renderTable();
         } else {
-            // 如果資料庫尚無資料，則寫入預設資料
-            saveToFirebase();
+            saveToFirebase(); // 初始化資料庫
         }
     });
 
-    // 儲存至 Firebase
     async function saveToFirebase() {
         try {
             await setDoc(dbRef, {
                 categories: categories,
                 hardwareData: hardwareData
             });
-            // 畫面更新將由 onSnapshot 自動觸發，但本地端可先立即刷新以提升操作手感
-            if (isAdmin) renderAdminItemList();
-            renderTable();
         } catch (error) {
             console.error("Firebase 儲存失敗:", error);
-            alert("資料儲存至伺服器失敗，請檢查網路連線。");
+            alert("資料同步失敗，請檢查網路。");
         }
     }
 
@@ -335,7 +326,6 @@
         categories.forEach(c => selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false }));
     }
 
-    // 置頂按鈕邏輯
     window.addEventListener('scroll', () => {
         const btn = document.getElementById('scrollTopBtn');
         if (window.scrollY > 300) {
@@ -347,7 +337,7 @@
         }
     });
 
-    // --- 將所有原本在 HTML 的 onclick 綁定到 window，以解決 module 作用域問題 ---
+    // 暴露函數到全域，解決 type="module" 作用域問題
     window.toggleAdminState = function() {
         document.getElementById('loginId').value = '';
         document.getElementById('loginPass').value = '';
@@ -457,7 +447,7 @@
         }
 
         hardwareData.push({ cat, name, price, discount, stock, date: today });
-        saveToFirebase(); // 替換掉原本的 localStorage
+        saveToFirebase();
 
         ['newName', 'newPrice', 'newStock'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('itemDiscount').value = '0';
@@ -484,11 +474,8 @@
         }
     };
 
-    // --- 使用者表格功能 ---
     function renderTable() {
         const table = document.getElementById('quoteTable');
-        
-        // 確保選項更新
         if(document.getElementById('newCat')) {
             document.getElementById('newCat').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
         }
@@ -639,7 +626,7 @@
         if (name && !categories.includes(name)) {
             categories.push(name);
             selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1 });
-            saveToFirebase(); // 更新至資料庫
+            saveToFirebase();
             document.getElementById('newCatName').value = '';
         }
     };
@@ -647,7 +634,7 @@
     window.removeCategory = function(index) {
         if (confirm(`確定刪除「${categories[index]}」分類？`)) {
             categories.splice(index, 1);
-            saveToFirebase(); // 更新至資料庫
+            saveToFirebase();
         }
     };
 
