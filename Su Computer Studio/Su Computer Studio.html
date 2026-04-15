@@ -64,7 +64,6 @@
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(0, 243, 255, 0.2);
             box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
-            /* 徹底移除 transform，解決下拉選單閃退 Bug */
         }
 
         .quote-row {
@@ -106,7 +105,6 @@
             color: #fff !important;
             outline: none !important;
             font-size: 16px !important;
-            /* 徹底移除 transform，保護原生選單 */
         }
         
         input:focus:not(:disabled) { 
@@ -341,7 +339,8 @@
             
             <div class="flex gap-2 sm:gap-4">
                 <button onclick="exportToExcel()" class="h-8 md:h-10 px-4 md:px-5 rounded-lg bg-slate-800/60 hover:bg-slate-700/80 text-cyan-400 hover:text-white font-bold tech-font text-[10px] md:text-xs border border-cyan-600/40 hover:border-cyan-400 shadow-[0_0_8px_rgba(0,243,255,0.1)] transition-all flex items-center gap-2 whitespace-nowrap backdrop-blur-md">
-                    <i class="fas fa-file-excel text-base text-emerald-500"></i> <span id="exportBtnText" class="hidden sm:inline">匯出正式報價單</span><span class="sm:hidden">匯出</span>
+                    <i class="fas fa-file-excel text-base text-emerald-500"></i> 
+                    <span id="exportBtnText" class="hidden sm:inline">匯出正式報價單</span><span class="sm:hidden">匯出</span>
                 </button>
             </div>
         </div>
@@ -356,7 +355,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-    
+
     const firebaseConfig = {
         apiKey: "AIzaSyBxwPsNRCbYLbrILVevw1zP9JZsZHRjFQw",
         authDomain: "su-computer-studio-225e1.firebaseapp.com",
@@ -374,17 +373,20 @@
 
     let categories = ['處理器', '主機板', '記憶體', '顯示卡', '硬碟', '電源', '機殼'];
     let hardwareData = [
-        { cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
-        { cat: '顯示卡', name: 'RTX 4070 Ti Super', price: 28500, stock: 5, discount: 5, date: '2024/01/01' } 
+        { id: 'h1', cat: '處理器', name: 'Intel i7-14700K', price: 13500, stock: 10, discount: 0, date: '2024/01/01' },
+        { id: 'h2', cat: '顯示卡', name: 'RTX 4070 Ti Super', price: 28500, stock: 5, discount: 5, date: '2024/01/01' } 
     ];
     let historyLogs = []; 
     
+    // 優化：將原來的 itemIdx 改為 itemId，徹底解決因管理員刪除項目導致陣列位移引發的錯亂與當機。
     let selectedRows = [];
     let isAdmin = false;
     let localDataString = "";
     let unlockedCats = [];
 
-    // --- HTML 快取變數 ---
+    // --- 區塊快照紀錄，用於比對差異 ---
+    let catSnapshots = {};
+
     let lastTableHTML = "";
     let lastAdminListHTML = "";
     let lastHistoryHTML = "";
@@ -396,6 +398,9 @@
     let lastActivity = Date.now();
     let autoSaveTimeout = null; 
     let isSavingPending = false;
+
+    // 優化：增加顏色快取，避免渲染時過度重複運算消耗 CPU 資源
+    const catColorCache = {};
 
     function resetIdleTimer() {
         if (!isAdmin) return;
@@ -415,12 +420,10 @@
 
     const scrollContainer = document.getElementById('main-scroll-container');
     
-    // 效能優化：只監聽重點操作事件，移除 mousemove 減輕手機 CPU 運算負載
     ['click', 'keypress', 'touchstart'].forEach(event => {
         window.addEventListener(event, () => { if (isAdmin) resetIdleTimer(); }, { passive: true });
     });
-    
-    // 效能優化：加入滾動防抖與狀態暫存，避免過度操作 DOM
+
     let isScrollBtnVisible = false;
     const scrollTopBtn = document.getElementById('scrollTopBtn');
     
@@ -441,12 +444,13 @@
     }, { passive: true });
 
     function getCatColorStyles(catName) {
+        if (catColorCache[catName]) return catColorCache[catName]; // 使用快取
         let idx = categories.indexOf(catName);
         if(idx === -1) idx = 0;
         const hue = (idx * 137.508) % 360;
-        const sat = 65 + (idx % 4) * 10;   
+        const sat = 65 + (idx % 4) * 10;
         const litBase = (idx % 3) * 6;
-        return {
+        const result = {
             bg: `hsla(${hue}, ${sat}%, 15%, 0.85)`,
             gradient: `linear-gradient(90deg, hsla(${hue}, ${sat}%, 10%, 0.8), hsla(${hue}, ${sat}%, 20%, 0.95), hsla(${hue}, ${sat}%, 10%, 0.8))`,
             border: `hsla(${hue}, ${sat}%, ${40 + litBase}%, 0.5)`,
@@ -455,34 +459,42 @@
             rowOdd: `hsla(${hue}, ${sat - 15}%, 12%, 0.6)`,
             rowEven: `hsla(${hue}, ${sat - 15}%, 8%, 0.8)`,
         };
+        catColorCache[catName] = result;
+        return result;
     }
 
     onSnapshot(dbRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             
+            let incomingHardwareData = data.hardwareData || hardwareData;
+            // 防護：確保所有商品都有 ID 來追蹤異動
+            incomingHardwareData.forEach(item => {
+                if (!item.id) item.id = Date.now() + Math.random().toString(36).substr(2, 9);
+            });
+            
             const remoteDataString = JSON.stringify({
                 categories: data.categories || categories,
-                hardwareData: data.hardwareData || hardwareData,
+                hardwareData: incomingHardwareData,
                 historyLogs: data.historyLogs || historyLogs
             });
             
+            // 防當機/解卡窗：在保存期間（isSavingPending）仍然阻擋，但因時間已從 10 秒縮為 1.5 秒，大幅減少卡窗體感。
             if (localDataString === remoteDataString || isSavingPending) return; 
 
             categories = data.categories || categories;
-            hardwareData = data.hardwareData || hardwareData;
+            hardwareData = incomingHardwareData;
             historyLogs = data.historyLogs || historyLogs; 
             
             localDataString = remoteDataString; 
             
             selectedRows = selectedRows.filter(r => categories.includes(r.cat));
-
             if(selectedRows.length === 0) {
                 initializeSelectedRows();
             } else {
                 categories.forEach(c => {
                     if (!selectedRows.some(r => r.cat === c)) {
-                        selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false });
+                        selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemId: "", qty: 1, stockWarning: false });
                     }
                 });
             }
@@ -500,15 +512,15 @@
     window.scheduleSave = function() {
         isSavingPending = true;
         if(autoSaveTimeout) clearTimeout(autoSaveTimeout);
+        // 優化：將10000(10秒)改為1500(1.5秒)，避免長時間屏蔽 Firebase 資料庫造成的資料錯亂與視窗假死。
         autoSaveTimeout = setTimeout(() => {
             saveToFirebase();
-        }, 10000);
+        }, 1500);
     }
 
     window.saveToFirebase = async function() {
         try {
-            if(historyLogs.length > 100) historyLogs = historyLogs.slice(0, 100); 
-            
+            if(historyLogs.length > 100) historyLogs = historyLogs.slice(0, 100);
             localDataString = JSON.stringify({ categories, hardwareData, historyLogs });
             await setDoc(dbRef, {
                 categories: categories,
@@ -526,7 +538,7 @@
 
     function initializeSelectedRows() {
         selectedRows = [];
-        categories.forEach(c => selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemIdx: "", qty: 1, stockWarning: false }));
+        categories.forEach(c => selectedRows.push({ id: Date.now()+Math.random(), cat: c, itemId: "", qty: 1, stockWarning: false }));
     }
 
     window.toggleAdminState = function() {
@@ -605,20 +617,60 @@
 
     window.toggleLock = function(cat) {
         if(unlockedCats.includes(cat)) {
-            unlockedCats = unlockedCats.filter(c => c !== cat); 
+            // 準備鎖上
+            unlockedCats = unlockedCats.filter(c => c !== cat);
+            // 比對快照產生紀錄
+            if (catSnapshots[cat]) {
+                let oldItems = catSnapshots[cat];
+                let newItems = hardwareData.filter(h => h.cat === cat);
+                let logs = [];
+                oldItems.forEach(old => {
+                    if (!newItems.find(n => n.id === old.id)) {
+                        logs.push({ type: 'stock_reduce', msg: `【刪除商品】移除了商品 ${old.name}` });
+                    }
+                });
+                newItems.forEach(newItem => {
+                    let oldItem = oldItems.find(o => o.id === newItem.id);
+                    if (oldItem) {
+                        let changes = [];
+                      
+                        if (oldItem.price !== newItem.price) changes.push(`定價 $${oldItem.price} ➔ $${newItem.price}`);
+                        if (oldItem.discount !== newItem.discount) changes.push(`折扣 ${oldItem.discount}% ➔ ${newItem.discount}%`);
+                        if (oldItem.stock !== newItem.stock) {
+                            let diff = newItem.stock - oldItem.stock;
+                            changes.push(`${diff > 0 ? '補貨' : '扣存'} ${Math.abs(diff)} 個 (庫存: ${newItem.stock})`);
+                        }
+                        if (oldItem.name !== newItem.name) changes.push(`名稱「${oldItem.name}」➔「${newItem.name}」`);
+         
+                        if (changes.length > 0) {
+                            let type = 'system';
+                            if (oldItem.stock !== newItem.stock) {
+                                type = newItem.stock > oldItem.stock ? 'restock' : 'stock_reduce';
+                            }
+                            logs.push({ type: type, msg: `【修改商品】${newItem.name} : ` + changes.join('，') });
+                        }
+                    }
+                });
+                if (logs.length > 0) {
+                    logs.forEach(log => logHistory(log.type, log.msg));
+                    scheduleSave();
+                }
+                delete catSnapshots[cat];
+            }
         } else {
-            unlockedCats.push(cat); 
+            // 解鎖並拍下快照
+            unlockedCats.push(cat);
+            catSnapshots[cat] = hardwareData.filter(h => h.cat === cat).map(h => ({...h}));
         }
         renderAdminItemList();
     }
 
-    // 效能優化：加入搜尋框防抖(Debounce)邏輯，避免手機連續輸入時造成系統卡頓當機
     let searchTimeout = null;
     window.handleSearch = function() {
         if (searchTimeout) clearTimeout(searchTimeout);
         searchTimeout = setTimeout(() => {
             renderAdminItemList();
-        }, 300); // 等待 0.3 秒後才執行搜尋過濾
+        }, 300);
     };
 
     window.renderAdminItemList = function() {
@@ -636,7 +688,7 @@
                 if(idxB === -1) idxB = 999;
                 return idxA - idxB;
             });
-            
+
         let lastCat = "";
         let rowCounter = 0; 
 
@@ -712,10 +764,7 @@
 
     window.addItem = function() {
         const cat = document.getElementById('newCat').value;
-        let name = document.getElementById('newName').value.trim();
-        
-        // 核心修復：拔除了自動 replace 轉換括號的邏輯，現在 100% 尊重您的原生輸入 (全形/半形)
-        
+        const name = document.getElementById('newName').value.trim();
         const price = Number(document.getElementById('newPrice').value);
         const discount = Number(document.getElementById('itemDiscount').value); 
         const stock = Number(document.getElementById('newStock').value);
@@ -723,14 +772,13 @@
 
         if (!name) return alert("請輸入硬體名稱");
         if (stock < 0) return alert("⚠️ 錯誤：初始庫存量不能小於 0");
-        
         const existingIdx = hardwareData.findIndex(h => h.cat === cat && h.name === name);
         if (existingIdx !== -1) {
             alert(`⚠️ 錯誤：資料庫中已存在同分類的商品「${name}」，請直接在列表中修改。`);
             return;
         }
 
-        hardwareData.push({ cat, name, price, discount, stock, date: today });
+        hardwareData.push({ id: Date.now() + Math.random().toString(36).substr(2, 9), cat, name, price, discount, stock, date: today });
         logHistory('add_item', `【新增商品】[${cat}] ${name} (初始定價: $${price}, 庫存: ${stock})`);
 
         renderAdminItemList();
@@ -743,16 +791,12 @@
 
     window.editDB = function(idx, field, val, inputElement) {
         let parsedVal;
-        
         if (field === 'name') {
-            // 核心修復：尊重原生輸入，不自動替換括號字元
             parsedVal = val.trim();
             if (inputElement) inputElement.value = parsedVal; 
         } else {
             parsedVal = Number(val) || 0;
         }
-        
-        const oldStock = hardwareData[idx].stock;
         
         if (field === 'stock' && parsedVal < 0) {
             alert("⚠️ 錯誤：庫存設定不能小於 0");
@@ -764,12 +808,6 @@
             hardwareData[idx][field] = parsedVal;
             hardwareData[idx].date = new Date().toLocaleDateString('zh-TW'); 
             
-            if(field === 'stock') {
-                const diff = parsedVal - oldStock;
-                if(diff > 0) logHistory('restock', `【手動補貨】${hardwareData[idx].name} 原庫存 ${oldStock} 個，補貨 ${diff} 個，目前庫存: ${parsedVal} 個`);
-                else if(diff < 0) logHistory('stock_reduce', `【手動扣存】${hardwareData[idx].name} 原庫存 ${oldStock} 個，扣存 ${Math.abs(diff)} 個，目前庫存: ${parsedVal} 個`);
-            }
-            
             const dateElement = document.getElementById('date-display-' + idx);
             if (dateElement) dateElement.innerText = hardwareData[idx].date;
 
@@ -780,17 +818,17 @@
 
     window.removeDBItem = function(idx) {
         if (confirm("確定刪除此資料？此操作無法還原。")) {
-            const deletedItem = hardwareData[idx];
-            logHistory('stock_reduce', `【刪除商品】移除了商品 ${deletedItem.name}`);
-            
+            // 修復：不再使用會變動的陣列 Index 修正，改用唯一的 id 安全脫鉤
+            const deletedItemId = hardwareData[idx].id;
             hardwareData.splice(idx, 1);
+            
             selectedRows.forEach(row => {
-                if (String(row.itemIdx) === String(idx)) {
-                    row.itemIdx = ""; 
-                } else if (row.itemIdx !== "" && Number(row.itemIdx) > idx) {
-                    row.itemIdx = Number(row.itemIdx) - 1; 
+                if (row.itemId === deletedItemId) {
+                    row.itemId = ""; 
+                    row.stockWarning = false;
                 }
             });
+            
             renderAdminItemList();
             renderTable();
             scheduleSave();
@@ -799,7 +837,6 @@
 
     window.renderTable = function() {
         const table = document.getElementById('quoteTable');
-        
         if(document.getElementById('newCat')) {
             const catSelect = document.getElementById('newCat');
             const catOpts = categories.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -819,7 +856,6 @@
                     <i class="fas fa-times-circle text-[10px] cursor-pointer hover:text-white transition-colors" style="color: ${colors.text}; opacity: 0.6;" onclick="removeCategory(${i})"></i>
                 </div>`;
             }).join('');
-
             if (lastCatTagHTML !== tagHtml) {
                 tagContainer.innerHTML = tagHtml;
                 lastCatTagHTML = tagHtml;
@@ -835,8 +871,9 @@
             const catColor = getCatColorStyles(cat);
 
             let selectionHtml = catRows.map((row, index) => {
-                const isItemEmpty = row.itemIdx === "";
-                const item = !isItemEmpty ? hardwareData[row.itemIdx] : null;
+                const isItemEmpty = !row.itemId;
+                const item = !isItemEmpty ? hardwareData.find(h => h.id === row.itemId) : null;
+             
                 const finalPrice = item ? Math.round(item.price * (1 - (item.discount / 100))) : 0;
                 const rowBgClass = index % 2 === 0 ? "bg-black/20" : "bg-cyan-900/20";
 
@@ -852,9 +889,8 @@
                         <select onchange="updateSelection(${row.id}, this.value)" class="w-full p-3 md:p-4 rounded-xl mono-font text-[14px] md:text-[15px] tracking-wide bg-gray-900 border border-gray-700 outline-none">
                             <option value="">-- 請選擇 ${cat} 組件 --</option>
                             ${hardwareOptions.map(h => {
-                                const globalIdx = hardwareData.indexOf(h);
                                 const stockInfo = h.stock <= 0 ? ' (已無庫存)' : ` (庫存:${h.stock})`;
-                                return `<option value="${globalIdx}" ${String(row.itemIdx) === String(globalIdx) ? 'selected' : ''}>▸ ${h.name}${stockInfo}</option>`;
+                                return `<option value="${h.id}" ${row.itemId === h.id ? 'selected' : ''}>▸ ${h.name}${stockInfo}</option>`;
                             }).join('')}
                         </select>
                     </div>
@@ -912,41 +948,41 @@
     };
 
     window.addRow = function(cat) {
-        const hasEmptyRow = selectedRows.find(r => r.cat === cat && r.itemIdx === "");
+        const hasEmptyRow = selectedRows.find(r => r.cat === cat && !r.itemId);
         if (hasEmptyRow) {
             alert("⚠️ 提示：該分類已有待選項目，請先選擇商品型號。");
             return;
         }
-        selectedRows.push({ id: Date.now() + Math.random(), cat: cat, itemIdx: "", qty: 1, stockWarning: false });
+        selectedRows.push({ id: Date.now() + Math.random(), cat: cat, itemId: "", qty: 1, stockWarning: false });
         renderTable();
     };
 
-    window.updateSelection = function(rowId, newItemIdx) {
+    window.updateSelection = function(rowId, newItemId) {
         const currentRow = selectedRows.find(r => r.id === rowId);
         currentRow.stockWarning = false;
 
-        if (newItemIdx === "") {
-            currentRow.itemIdx = "";
+        if (!newItemId) {
+            currentRow.itemId = "";
             renderTable();
             return;
         }
 
-        const item = hardwareData[newItemIdx];
+        const item = hardwareData.find(h => h.id === newItemId);
         if (item && item.stock <= 0) {
             alert(`⚠️ 提示：商品「${item.name}」目前已無庫存，待管理者補貨後方可選擇。`);
-            currentRow.itemIdx = ""; 
+            currentRow.itemId = ""; 
             renderTable();
             return;
         }
         
-        const isDuplicate = selectedRows.some(r => r.id !== rowId && r.cat === currentRow.cat && String(r.itemIdx) === String(newItemIdx));
+        const isDuplicate = selectedRows.some(r => r.id !== rowId && r.cat === currentRow.cat && r.itemId === newItemId);
         if (isDuplicate) {
             alert("⚠️ 重複選擇：此報價單已包含該商品，請直接調整現有數量。");
             renderTable(); 
             return;
         }
 
-        currentRow.itemIdx = newItemIdx;
+        currentRow.itemId = newItemId;
         currentRow.qty = 1;
         renderTable();
     };
@@ -957,8 +993,8 @@
 
         let inputQty = parseInt(val) || 1;
         row.stockWarning = false;
-        if (row.itemIdx !== "") {
-            const item = hardwareData[row.itemIdx];
+        if (row.itemId) {
+            const item = hardwareData.find(h => h.id === row.itemId);
             if (item && inputQty > item.stock) {
                 inputQty = item.stock;
                 row.stockWarning = true; 
@@ -986,7 +1022,7 @@
         if (sameCatRows.length > 1) {
             selectedRows = selectedRows.filter(r => r.id !== id);
         } else {
-            targetRow.itemIdx = "";
+            targetRow.itemId = "";
             targetRow.qty = 1;
             targetRow.stockWarning = false;
         }
@@ -996,15 +1032,14 @@
     function calculateGrandTotal() {
         let total = 0;
         selectedRows.forEach(row => {
-            if(row.itemIdx !== "") {
-                const item = hardwareData[row.itemIdx];
+            if(row.itemId) {
+                const item = hardwareData.find(h => h.id === row.itemId);
                 if (item) total += Math.round(item.price * (1 - (item.discount / 100))) * row.qty;
             }
         });
         document.getElementById('grandTotal').innerText = total.toLocaleString();
     }
 
-    // --- 日誌與系統紀錄 ---
     function logHistory(type, description, amount = null) {
         historyLogs.unshift({
             id: Date.now(),
@@ -1013,7 +1048,6 @@
             desc: description,
             amount: amount
         });
-        
         if (historyLogs.length > 100) {
             historyLogs.pop();
         }
@@ -1079,7 +1113,6 @@
         }
     };
 
-    // --- 清空歷史紀錄驗證流程 ---
     window.verifyClearHistoryPassword = async function() {
         const pass = document.getElementById('clearHistoryPassInput').value;
         if (pass === "suting") {
@@ -1096,9 +1129,8 @@
         }
     }
 
-    // --- 送出報價驗證流程 ---
     window.submitQuotation = function() {
-        const validRows = selectedRows.filter(r => r.itemIdx !== "");
+        const validRows = selectedRows.filter(r => r.itemId);
         if (validRows.length === 0) {
             alert("⚠️ 請至少選擇一項商品後再送出報價單！");
             return;
@@ -1106,15 +1138,16 @@
 
         let stockError = false;
         for (let row of validRows) {
-            const item = hardwareData[row.itemIdx];
-            if (item.stock < row.qty) {
-                alert(`⚠️ 錯誤：商品「${item.name}」庫存不足 (剩餘: ${item.stock})，無法送出報價單！`);
+            const item = hardwareData.find(h => h.id === row.itemId);
+            if (!item || item.stock < row.qty) {
+                const itemName = item ? item.name : '未知商品';
+                const stockQty = item ? item.stock : 0;
+                alert(`⚠️ 錯誤：商品「${itemName}」庫存不足 (剩餘: ${stockQty})，無法送出報價單！`);
                 stockError = true;
                 break;
             }
         }
         if (stockError) return;
-        
         document.getElementById('quoteAuthModal').style.display = 'flex';
         document.getElementById('quotePassInput').value = '';
         document.getElementById('quotePassInput').focus();
@@ -1132,13 +1165,13 @@
         }
     }
 
-    // 正式執行扣除庫存與紀錄
     window.executeQuotation = async function() {
-        const validRows = selectedRows.filter(r => r.itemIdx !== "");
+        const validRows = selectedRows.filter(r => r.itemId);
         let totalAmount = 0;
         
         let logDetails = validRows.map(row => {
-            const item = hardwareData[row.itemIdx];
+            const item = hardwareData.find(h => h.id === row.itemId);
+            if(!item) return '';
             const finalPrice = Math.round(item.price * (1 - (item.discount / 100)));
             totalAmount += finalPrice * row.qty;
             
@@ -1148,14 +1181,16 @@
         }).join(' <br> <span class="text-cyan-500/50 text-xs">◆</span> ');
 
         validRows.forEach(row => {
-            const item = hardwareData[row.itemIdx];
-            item.stock -= row.qty;
-            item.date = new Date().toLocaleDateString('zh-TW');
+            const item = hardwareData.find(h => h.id === row.itemId);
+            if(item) {
+                item.stock -= row.qty;
+                item.date = new Date().toLocaleDateString('zh-TW');
+            }
         });
-        
-        logHistory('quote', `【送出報價單已扣除對應庫存】商品細項：<br><div class="mt-2 text-cyan-100">${logDetails}</div>`, totalAmount);
 
-        alert("✅ 報價單已成功送出，庫存已對應扣除！");
+        logHistory('quote', `【送出報價單已更新對應庫存】商品細項：<br><div class="mt-2 text-cyan-100">${logDetails}</div>`, totalAmount);
+
+        alert("✅ 報價單已成功送出，已自動更新庫存！");
         
         initializeSelectedRows();
         renderTable();
@@ -1168,7 +1203,9 @@
         const name = document.getElementById('newCatName').value.trim();
         if (name && !categories.includes(name)) {
             categories.push(name);
-            selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemIdx: "", qty: 1, stockWarning: false });
+            selectedRows.push({ id: Date.now()+Math.random(), cat: name, itemId: "", qty: 1, stockWarning: false });
+            
+            logHistory('system', `【新增分類】新增了系統分類「${name}」`);
             
             renderAdminItemList();
             renderTable();
@@ -1179,7 +1216,9 @@
     };
     
     window.removeCategory = function(index) {
-        if (confirm(`確定刪除「${categories[index]}」分類？`)) {
+        const removedCat = categories[index];
+        if (confirm(`確定刪除「${removedCat}」分類？`)) {
+            logHistory('system', `【刪除分類】移除了系統分類「${removedCat}」`);
             categories.splice(index, 1);
             renderAdminItemList();
             renderTable();
@@ -1192,7 +1231,6 @@
         document.getElementById('updateDate').innerText = now.toLocaleDateString('zh-TW');
     }
 
-    // --- 匯出資料庫 ---
     window.exportDBToExcel = async function() {
         try {
             const workbook = new ExcelJS.Workbook();
@@ -1205,23 +1243,25 @@
                 { header: '目前庫存量', key: 'stock', width: 15 },
                 { header: '最後更新日', key: 'date', width: 15 }
             ];
-            
             ws.getRow(1).eachCell(cell => {
                 cell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0070C0' } };
                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             });
-            
+
             const sortedDB = [...hardwareData].sort((a, b) => categories.indexOf(a.cat) - categories.indexOf(b.cat));
             sortedDB.forEach(item => {
-                const row = ws.addRow(item);
+                const row = ws.addRow({
+                    ...item,
+                    name: String(item.name) // 保證文字編碼為原生存檔
+                });
                 row.eachCell((cell, colNum) => {
                     cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
                     if(colNum !== 2) cell.alignment = { vertical: 'middle', horizontal: 'center' };
                 });
             });
-            
+
             const ws2 = workbook.addWorksheet('系統分類管理');
             ws2.columns = [{ header: '系統現有分類名稱', key: 'cat', width: 30 }];
             ws2.getRow(1).eachCell(cell => {
@@ -1229,6 +1269,7 @@
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00B050' } };
                 cell.alignment = { vertical: 'middle', horizontal: 'center' };
             });
+
             categories.forEach(c => {
                 const row = ws2.addRow({cat: c});
                 row.getCell(1).border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
@@ -1250,7 +1291,6 @@
         }
     };
 
-    // --- 匯入還原資料庫 ---
     window.importDBFromExcel = function(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1265,12 +1305,12 @@
                 const ws = workbook.getWorksheet('商品資料庫');
                 const ws2 = workbook.getWorksheet('系統分類管理');
 
-                if(!ws) return; 
-
+                if(!ws) return;
                 let newHardware = [];
                 ws.eachRow((row, rowNumber) => {
                     if (rowNumber === 1) return;
                     newHardware.push({
+                        id: Date.now() + Math.random().toString(36).substr(2, 9),
                         cat: row.getCell(1).text || '',
                         name: row.getCell(2).text || '',
                         price: Number(row.getCell(3).value) || 0,
@@ -1298,23 +1338,19 @@
                 await saveToFirebase();
                 renderAdminItemList();
                 renderTable();
-                
             } catch(error) {
                 console.error("Excel匯入失敗", error);
             } finally {
-                document.getElementById('importDBInput').value = ''; 
+                document.getElementById('importDBInput').value = '';
             }
         };
         reader.readAsArrayBuffer(file);
     };
 
-    // --- 匯出報價與操作紀錄為 TXT 檔 ---
     window.exportHistoryToTxt = function() {
         if(historyLogs.length === 0) return;
-        
         let txtContent = "Su.Computer Studio | 系統操作與歷史報價紀錄\n";
         txtContent += "=================================================\n\n";
-        
         historyLogs.forEach(log => {
             txtContent += `[${log.date}] - ${log.type.toUpperCase()}\n`;
             let cleanDesc = log.desc.replace(/<br>/g, "\n").replace(/<[^>]+>/g, "");
@@ -1322,7 +1358,7 @@
             if(log.amount) txtContent += `\n>> 總金額: $${log.amount.toLocaleString()}\n`;
             txtContent += "-------------------------------------------------\n";
         });
-        
+
         const blob = new Blob([txtContent], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -1334,9 +1370,8 @@
         URL.revokeObjectURL(url);
     };
 
-    // --- 匯出正式報價單 Excel ---
     window.exportToExcel = async function() {
-        const validRows = selectedRows.filter(r => r.itemIdx !== "").sort((a, b) => {
+        const validRows = selectedRows.filter(r => r.itemId).sort((a, b) => {
             let idxA = categories.indexOf(a.cat);
             let idxB = categories.indexOf(b.cat);
             if(idxA === -1) idxA = 999;
@@ -1352,14 +1387,14 @@
         const btnTextEl = document.getElementById('exportBtnText');
         const originalText = btnTextEl.innerText;
         btnTextEl.innerText = '產生中...';
-        
+
         try {
             const d = new Date();
             const yyyy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, '0');
             const dd = String(d.getDate()).padStart(2, '0');
-            const todayStr = `${yyyy}${mm}${dd}`; 
-            
+            const todayStr = `${yyyy}${mm}${dd}`;
+
             let quoteCounter = localStorage.getItem('quoteCounterDate') === todayStr ? parseInt(localStorage.getItem('quoteCounterValue')) : 0;
             quoteCounter++;
             localStorage.setItem('quoteCounterDate', todayStr);
@@ -1370,7 +1405,7 @@
             const workbook = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet('正式報價單', {
                 pageSetup: {
-                    paperSize: 9, // A4
+                    paperSize: 9, 
                     orientation: 'portrait',
                     fitToPage: true,
                     fitToWidth: 1,
@@ -1380,11 +1415,11 @@
             });
 
             worksheet.columns = [
-                { width: 18 }, // 硬體分類
-                { width: 45 }, // 商品型號規格
-                { width: 20 }, // 單價 (放寬)
-                { width: 10 }, // 數量
-                { width: 25 }  // 小計 
+                { width: 18 }, 
+                { width: 45 }, 
+                { width: 20 }, 
+                { width: 10 }, 
+                { width: 25 }  
             ];
 
             worksheet.mergeCells('A1:E1');
@@ -1433,12 +1468,15 @@
             let isEvenRow = true;
 
             validRows.forEach(row => {
-                const item = hardwareData[row.itemIdx];
+                const item = hardwareData.find(h => h.id === row.itemId);
+                if(!item) return; // 防崩潰保護
+                
                 const finalPrice = Math.round(item.price * (1 - (item.discount / 100)));
                 const subtotal = finalPrice * row.qty;
                 totalAmount += subtotal;
 
-                const dataRow = worksheet.addRow([ row.cat, item.name, finalPrice, row.qty, subtotal ]);
+                // 優化：明確使用 String() 保留管理者原始寫入的字元編碼，不被使用者介面干擾。
+                const dataRow = worksheet.addRow([ row.cat, String(item.name), finalPrice, row.qty, subtotal ]);
                 dataRow.height = 22;
 
                 const bgColor = isEvenRow ? 'FFFFFFFF' : 'FFF2F6FA';
@@ -1457,7 +1495,7 @@
                         cell.numFmt = '#,##0';
                     }
                 });
-                
+
                 dataRow.getCell(1).font = { name: '微軟正黑體', size: 11, bold: true, color: { argb: 'FF1F4E78' } };
                 isEvenRow = !isEvenRow;
             });
@@ -1499,7 +1537,6 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            
             a.download = `${quoteNo}.xlsx`;
             
             document.body.appendChild(a);
